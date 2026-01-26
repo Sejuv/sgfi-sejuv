@@ -106,11 +106,22 @@ function App() {
     toast.info("Você saiu do sistema")
   }
 
+  const handleAtualizarUsuario = (usuarioAtualizado: Usuario) => {
+    setUsuarios((current) => 
+      (current || []).map((u) => u.id === usuarioAtualizado.id ? usuarioAtualizado : u)
+    )
+  }
+
   if (!sessao) {
     return (
       <>
         <Toaster richColors position="top-right" />
-        <Login onLogin={handleLogin} erro={erroLogin} />
+        <Login 
+          onLogin={handleLogin} 
+          erro={erroLogin} 
+          usuarios={usuarios || []}
+          onAtualizarUsuario={handleAtualizarUsuario}
+        />
       </>
     )
   }

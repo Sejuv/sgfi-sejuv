@@ -1,27 +1,79 @@
 import { useState } from "react"
+import { Usuario } from "@/lib/types"
+import { hashSenha } from "@/lib/auth-service"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { LockKey, EnvelopeSimple, Buildings, Info } from "@phosphor-icons/react"
+import { toast } from "sonner"
 
 interface LoginProps {
   onLogin: (email: string, senha: string) => Promise<boolean>
   erro?: string
+  usuarios: Usuario[]
+  onAtualizarUsuario: (usuario: Usuario) => void
 }
 
-export function Login({ onLogin, erro }: LoginProps) {
+export function Login({ onLogin, erro, usuarios, onAtualizarUsuario }: LoginProps) {
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
   const [carregando, setCarregando] = useState(false)
-  const [mostrarInfo, setMostrarInfo] = useState(false)
+  const [mostrarRecuperacao, setMostrarRecuperacao] = useState(false)
+  const [emailRecuperacao, setEmailRecuperacao] = useState("")
+  const [novaSenha, setNovaSenha] = useState("")
+  const [confirmarNovaSenha, setConfirmarNovaSenha] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setCarregando(true)
     await onLogin(email, senha)
     setCarregando(false)
+  }
+
+  const handleRecuperarSenha = async () => {
+    if (!emailRecuperacao) {
+      toast.error("Digite o email do usuário")
+      return
+    }
+
+    const usuario = usuarios.find(u => u.email === emailRecuperacao && u.ativo)
+    
+    if (!usuario) {
+      toast.error("Usuário não encontrado ou inativo")
+      return
+    }
+
+    if (!novaSenha || novaSenha.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres")
+      return
+    }
+
+    if (novaSenha !== confirmarNovaSenha) {
+      toast.error("As senhas não coincidem")
+      return
+    }
+
+    try {
+      const senhaHash = await hashSenha(novaSenha)
+      const usuarioAtualizado: Usuario = {
+        ...usuario,
+        senha: senhaHash
+      }
+      
+      onAtualizarUsuario(usuarioAtualizado)
+      
+      toast.success("Senha alterada com sucesso! Faça login com a nova senha.")
+      setMostrarRecuperacao(false)
+      setEmailRecuperacao("")
+      setNovaSenha("")
+      setConfirmarNovaSenha("")
+    } catch (error) {
+      toast.error("Erro ao alterar senha")
+      console.error(error)
+    }
   }
 
   return (
@@ -118,27 +170,69 @@ export function Login({ onLogin, erro }: LoginProps) {
                 variant="ghost"
                 size="sm"
                 className="w-full gap-2 text-muted-foreground hover:text-foreground"
-                onClick={() => setMostrarInfo(!mostrarInfo)}
+                onClick={() => setMostrarRecuperacao(true)}
               >
                 <Info size={16} weight="bold" />
-                {mostrarInfo ? "Ocultar informações" : "Informações de acesso"}
+                Esqueceu sua senha?
               </Button>
-
-              {mostrarInfo && (
-                <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-2 text-sm animate-in fade-in slide-in-from-top-2">
-                  <p className="font-semibold text-foreground">Acesso inicial do sistema:</p>
-                  <div className="space-y-1 text-muted-foreground">
-                    <p><span className="font-medium">Email:</span> admin@iraucuba.ce.gov.br</p>
-                    <p><span className="font-medium">Senha:</span> admin123</p>
-                  </div>
-                  <p className="text-xs text-amber-600 font-medium mt-3">
-                    ⚠️ Altere a senha após o primeiro acesso
-                  </p>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
+
+        <Dialog open={mostrarRecuperacao} onOpenChange={setMostrarRecuperacao}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Recuperar Senha</DialogTitle>
+              <DialogDescription>
+                Digite o email do usuário cadastrado e defina uma nova senha
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="email-recuperacao">Email do Usuário</Label>
+                <Input
+                  id="email-recuperacao"
+                  type="email"
+                  placeholder="usuario@iraucuba.ce.gov.br"
+                  value={emailRecuperacao}
+                  onChange={(e) => setEmailRecuperacao(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="nova-senha">Nova Senha</Label>
+                <Input
+                  id="nova-senha"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmar-nova-senha">Confirmar Nova Senha</Label>
+                <Input
+                  id="confirmar-nova-senha"
+                  type="password"
+                  placeholder="Digite novamente"
+                  value={confirmarNovaSenha}
+                  onChange={(e) => setConfirmarNovaSenha(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setMostrarRecuperacao(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleRecuperarSenha}>
+                Alterar Senha
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           © {new Date().getFullYear()} JEOS Sistemas - Taylan Itallo
