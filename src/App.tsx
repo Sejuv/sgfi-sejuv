@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { useFirebaseKV } from "@/hooks/useFirebaseKV"
+import { useRealtimeSync } from "@/hooks/useRealtimeSync"
 import { ProcessoDespesa, Usuario, SessaoUsuario } from "@/lib/types"
 import { validarCredenciais, criarSessao, criarUsuarioInicial } from "@/lib/auth-service"
 import { Login } from "@/components/Login"
@@ -25,6 +26,9 @@ import { toast, Toaster } from "sonner"
 import { logService } from "@/lib/log-service"
 
 function App() {
+  // Sincronização em tempo real com Firebase - mantém dados sempre atualizados
+  useRealtimeSync(true)
+  
   const [processos, setProcessos] = useFirebaseKV<ProcessoDespesa[]>("processos-despesas", [])
   const [usuarios, setUsuarios] = useFirebaseKV<Usuario[]>("usuarios", [])
   const [sessao, setSessao] = useFirebaseKV<SessaoUsuario | null>("sessao-atual", null)

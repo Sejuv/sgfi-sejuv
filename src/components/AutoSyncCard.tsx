@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { SyncService } from "@/lib/sync-service"
+import { autoBackupService } from "@/lib/auto-backup-service"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -16,7 +17,8 @@ import {
   ArrowsClockwise, 
   CheckCircle, 
   Clock,
-  Warning 
+  Warning,
+  Database
 } from "@phosphor-icons/react"
 
 interface AutoSyncSettings {
@@ -27,7 +29,7 @@ interface AutoSyncSettings {
 export function AutoSyncCard() {
   const [settings, setSettings] = useState<AutoSyncSettings>({
     enabled: false,
-    interval: 300000
+    interval: 3600000 // 1 hora em milissegundos (60 * 60 * 1000)
   })
   const [lastAutoSync, setLastAutoSync] = useState<number | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -76,10 +78,13 @@ export function AutoSyncCard() {
     setSettings(newSettings)
     localStorage.setItem("auto-sync-settings", JSON.stringify(newSettings))
     
+    // Controlar o serviço de backup automático
     if (enabled) {
-      toast.success("Sincronização automática ativada")
+      autoBackupService.start()
+      toast.success("Backup automático ativado - a cada 1 hora no Firebase")
     } else {
-      toast.info("Sincronização automática desativada")
+      autoBackupService.stop()
+      toast.info("Backup automático desativado")
     }
   }
 
@@ -151,10 +156,10 @@ export function AutoSyncCard() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="auto-sync-toggle" className="text-sm font-medium">
-                Ativar sincronização automática
+                Ativar backup automático no Firebase
               </Label>
               <p className="text-xs text-muted-foreground">
-                Backups serão criados automaticamente
+                Backups serão salvos no Firebase a cada 1 hora
               </p>
             </div>
             <Switch
@@ -188,8 +193,20 @@ export function AutoSyncCard() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Backup será criado a cada {getIntervalLabel(settings.interval)}
+                  Backup no Firebase será criado a cada {getIntervalLabel(settings.interval)}
                 </p>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <Database className="h-4 w-4 text-blue-600" weight="bold" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-blue-900">
+                    Backup automático no Firebase ativo
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    Dados sincronizados em tempo real a cada hora
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
@@ -231,7 +248,7 @@ export function AutoSyncCard() {
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <Warning className="h-4 w-4 text-amber-600 mt-0.5" weight="bold" />
               <p className="text-xs text-amber-800">
-                A sincronização automática está desativada. Seus dados não serão salvos automaticamente.
+                O backup automático no Firebase está desativado. Ative para manter seus dados sempre sincronizados e protegidos.
               </p>
             </div>
           )}

@@ -82,6 +82,32 @@ export function subscribeToFirestore(
 }
 
 /**
+ * Inscreve-se para múltiplas coleções em tempo real
+ * Retorna um unsubscribe que cancela todos os listeners
+ */
+export function subscribeToAllCollections(
+  collections: string[],
+  onUpdate: (key: string, data: any) => void
+): Unsubscribe {
+  console.log('📡 Inscrevendo listeners para todas as coleções:', collections)
+  
+  const unsubscribers: Unsubscribe[] = []
+  
+  collections.forEach(key => {
+    const unsubscribe = subscribeToFirestore(key, (data) => {
+      onUpdate(key, data)
+    }, null)
+    unsubscribers.push(unsubscribe)
+  })
+  
+  // Retorna função que cancela todos os listeners
+  return () => {
+    console.log('🔌 Cancelando todos os listeners de coleções')
+    unsubscribers.forEach(unsub => unsub())
+  }
+}
+
+/**
  * Migra dados do localStorage para o Firebase
  */
 export async function migrateFromLocalStorage(): Promise<void> {
