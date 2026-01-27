@@ -13,6 +13,7 @@ import { ObjetoForm } from "@/components/cadastros/ObjetoForm"
 import { RecursoForm } from "@/components/cadastros/RecursoForm"
 import { ImportCadastroDialog } from "@/components/ImportCadastroDialog"
 import { MigracaoFirebase } from "@/components/MigracaoFirebase"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { 
   Secretaria, 
   Setor, 
@@ -92,6 +93,20 @@ export function PainelCadastros() {
   const [importCredoresOpen, setImportCredoresOpen] = useState(false)
   const [importObjetosOpen, setImportObjetosOpen] = useState(false)
   const [importRecursosOpen, setImportRecursosOpen] = useState(false)
+
+  // Controle de modais de confirmação
+  const [confirmDelete, setConfirmDelete] = useState<{
+    open: boolean
+    type: string
+    id: string
+    name: string
+  }>({ open: false, type: '', id: '', name: '' })
+
+  const [confirmImport, setConfirmImport] = useState<{
+    open: boolean
+    type: string
+    items: any[]
+  }>({ open: false, type: '', items: [] })
 
   // Listas ordenadas alfabeticamente
   const secretariasOrdenadas = useMemo(() => 
@@ -213,13 +228,49 @@ export function PainelCadastros() {
   }
 
   const handleDeleteSecretaria = (id: string) => {
+    const secretaria = secretarias?.find(s => s.id === id)
     const setoresDaSecretaria = (setores || []).filter(setor => setor.secretariaId === id)
     if (setoresDaSecretaria.length > 0) {
       toast.error("Não é possível excluir secretaria com setores vinculados")
       return
     }
-    setSecretarias((current) => (current || []).filter((item) => item.id !== id))
-    toast.success("Secretaria excluída")
+    setConfirmDelete({
+      open: true,
+      type: 'secretaria',
+      id,
+      name: secretaria?.nome || ''
+    })
+  }
+
+  const confirmDeleteAction = () => {
+    const { type, id } = confirmDelete
+    
+    switch(type) {
+      case 'secretaria':
+        setSecretarias((current) => (current || []).filter((item) => item.id !== id))
+        toast.success("Secretaria excluída")
+        break
+      case 'setor':
+        setSetores((current) => (current || []).filter((item) => item.id !== id))
+        toast.success("Setor excluído")
+        break
+      case 'conta':
+        setContas((current) => (current || []).filter((item) => item.id !== id))
+        toast.success("Conta excluída")
+        break
+      case 'credor':
+        setCredores((current) => (current || []).filter((item) => item.id !== id))
+        toast.success("Credor excluído")
+        break
+      case 'objeto':
+        setObjetos((current) => (current || []).filter((item) => item.id !== id))
+        toast.success("Objeto excluído")
+        break
+      case 'recurso':
+        setRecursos((current) => (current || []).filter((item) => item.id !== id))
+        toast.success("Recurso excluído")
+        break
+    }
   }
 
   const handleDragStart = (e: React.DragEvent, setorId: string) => {
@@ -281,93 +332,129 @@ export function PainelCadastros() {
   }
 
   const handleImportSecretarias = (items: Omit<Secretaria, "id">[]) => {
-    console.log('📥 Importando secretarias:', items.length)
-    setSecretarias((current) => {
-      const currentArray = current || []
-      console.log('📊 Secretarias atuais:', currentArray.length)
-      const novosItens = items.map((item, index) => ({
-        ...item,
-        id: `${Date.now()}-${index}`,
-      }))
-      const resultado = [...currentArray, ...novosItens]
-      console.log('✅ Total após importação:', resultado.length)
-      return resultado
+    setConfirmImport({
+      open: true,
+      type: 'secretarias',
+      items
     })
   }
 
   const handleImportSetores = (items: Omit<Setor, "id">[]) => {
-    console.log('📥 Importando setores:', items.length)
-    setSetores((current) => {
-      const currentArray = current || []
-      console.log('📊 Setores atuais:', currentArray.length)
-      const novosItens = items.map((item, index) => ({
-        ...item,
-        id: `${Date.now()}-${index}`,
-      }))
-      const resultado = [...currentArray, ...novosItens]
-      console.log('✅ Total após importação:', resultado.length)
-      return resultado
+    setConfirmImport({
+      open: true,
+      type: 'setores',
+      items
     })
   }
 
   const handleImportContas = (items: Omit<Conta, "id">[]) => {
-    console.log('📥 Importando contas:', items.length)
-    setContas((current) => {
-      const currentArray = current || []
-      console.log('📊 Contas atuais:', currentArray.length)
-      const novosItens = items.map((item, index) => ({
-        ...item,
-        id: `${Date.now()}-${index}`,
-      }))
-      const resultado = [...currentArray, ...novosItens]
-      console.log('✅ Total após importação:', resultado.length)
-      return resultado
+    setConfirmImport({
+      open: true,
+      type: 'contas',
+      items
     })
   }
 
   const handleImportCredores = (items: Omit<Credor, "id">[]) => {
-    console.log('📥 Importando credores:', items.length)
-    setCredores((current) => {
-      const currentArray = current || []
-      console.log('📊 Credores atuais:', currentArray.length)
-      const novosItens = items.map((item, index) => ({
-        ...item,
-        id: `${Date.now()}-${index}`,
-      }))
-      const resultado = [...currentArray, ...novosItens]
-      console.log('✅ Total após importação:', resultado.length)
-      return resultado
+    setConfirmImport({
+      open: true,
+      type: 'credores',
+      items
     })
   }
 
   const handleImportObjetos = (items: Omit<Objeto, "id">[]) => {
-    console.log('📥 Importando objetos:', items.length)
-    setObjetos((current) => {
-      const currentArray = current || []
-      console.log('📊 Objetos atuais:', currentArray.length)
-      const novosItens = items.map((item, index) => ({
-        ...item,
-        id: `${Date.now()}-${index}`,
-      }))
-      const resultado = [...currentArray, ...novosItens]
-      console.log('✅ Total após importação:', resultado.length)
-      return resultado
+    setConfirmImport({
+      open: true,
+      type: 'objetos',
+      items
     })
   }
 
   const handleImportRecursos = (items: Omit<Recurso, "id">[]) => {
-    console.log('📥 Importando recursos:', items.length)
-    setRecursos((current) => {
-      const currentArray = current || []
-      console.log('📊 Recursos atuais:', currentArray.length)
-      const novosItens = items.map((item, index) => ({
-        ...item,
-        id: `${Date.now()}-${index}`,
-      }))
-      const resultado = [...currentArray, ...novosItens]
-      console.log('✅ Total após importação:', resultado.length)
-      return resultado
+    setConfirmImport({
+      open: true,
+      type: 'recursos',
+      items
     })
+  }
+
+  const confirmImportAction = () => {
+    const { type, items } = confirmImport
+    console.log(`📥 Importando ${type}:`, items.length)
+    
+    switch(type) {
+      case 'secretarias':
+        setSecretarias((current) => {
+          const currentArray = current || []
+          console.log('📊 Secretarias atuais:', currentArray.length)
+          const novosItens = items.map((item, index) => ({
+            ...item,
+            id: `${Date.now()}-${index}`,
+          }))
+          const resultado = [...currentArray, ...novosItens]
+          console.log('✅ Total após importação:', resultado.length)
+          return resultado
+        })
+        setImportSecretariasOpen(false)
+        break
+      case 'setores':
+        setSetores((current) => {
+          const currentArray = current || []
+          const novosItens = items.map((item, index) => ({
+            ...item,
+            id: `${Date.now()}-${index}`,
+          }))
+          return [...currentArray, ...novosItens]
+        })
+        setImportSetoresOpen(false)
+        break
+      case 'contas':
+        setContas((current) => {
+          const currentArray = current || []
+          const novosItens = items.map((item, index) => ({
+            ...item,
+            id: `${Date.now()}-${index}`,
+          }))
+          return [...currentArray, ...novosItens]
+        })
+        setImportContasOpen(false)
+        break
+      case 'credores':
+        setCredores((current) => {
+          const currentArray = current || []
+          const novosItens = items.map((item, index) => ({
+            ...item,
+            id: `${Date.now()}-${index}`,
+          }))
+          return [...currentArray, ...novosItens]
+        })
+        setImportCredoresOpen(false)
+        break
+      case 'objetos':
+        setObjetos((current) => {
+          const currentArray = current || []
+          const novosItens = items.map((item, index) => ({
+            ...item,
+            id: `${Date.now()}-${index}`,
+          }))
+          return [...currentArray, ...novosItens]
+        })
+        setImportObjetosOpen(false)
+        break
+      case 'recursos':
+        setRecursos((current) => {
+          const currentArray = current || []
+          const novosItens = items.map((item, index) => ({
+            ...item,
+            id: `${Date.now()}-${index}`,
+          }))
+          return [...currentArray, ...novosItens]
+        })
+        setImportRecursosOpen(false)
+        break
+    }
+    toast.success(`${items.length} registro(s) importado(s) com sucesso`)
   }
 
   const handleExportSecretarias = () => {
@@ -596,10 +683,12 @@ export function PainelCadastros() {
                                       size="sm"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        setSetores((current) =>
-                                          (current || []).filter((item) => item.id !== setor.id)
-                                        )
-                                        toast.success("Setor excluído")
+                                        setConfirmDelete({
+                                          open: true,
+                                          type: 'setor',
+                                          id: setor.id,
+                                          name: setor.nome
+                                        })
                                       }}
                                     >
                                       <Trash className="h-4 w-4" weight="bold" />
@@ -652,8 +741,13 @@ export function PainelCadastros() {
               setSetorFormOpen(true)
             }}
             onDelete={(id) => {
-              setSetores((current) => (current || []).filter((item) => item.id !== id))
-              toast.success("Setor excluído")
+              const setor = setores?.find(s => s.id === id)
+              setConfirmDelete({
+                open: true,
+                type: 'setor',
+                id,
+                name: setor?.nome || ''
+              })
             }}
             addLabel="Novo Setor"
           />
@@ -677,8 +771,14 @@ export function PainelCadastros() {
               setContaFormOpen(true)
             }}
             onDelete={(id) => {
-              setContas((current) => (current || []).filter((item) => item.id !== id))
-              toast.success("Conta excluída")
+              const conta = contas?.find(c => c.id === id)
+              setConfirmDelete({
+                open: true,
+                type: 'conta',
+                id,
+                name: conta?.tipo || ''
+              })
+            }}
             }}
             addLabel="Nova Conta"
             onImport={() => setImportContasOpen(true)}
@@ -706,8 +806,14 @@ export function PainelCadastros() {
               setCredorFormOpen(true)
             }}
             onDelete={(id) => {
-              setCredores((current) => (current || []).filter((item) => item.id !== id))
-              toast.success("Credor excluído")
+              const credor = credores?.find(c => c.id === id)
+              setConfirmDelete({
+                open: true,
+                type: 'credor',
+                id,
+                name: credor?.nome || ''
+              })
+            }}
             }}
             addLabel="Novo Credor"
             onImport={() => setImportCredoresOpen(true)}
@@ -733,8 +839,14 @@ export function PainelCadastros() {
               setObjetoFormOpen(true)
             }}
             onDelete={(id) => {
-              setObjetos((current) => (current || []).filter((item) => item.id !== id))
-              toast.success("Objeto excluído")
+              const objeto = objetos?.find(o => o.id === id)
+              setConfirmDelete({
+                open: true,
+                type: 'objeto',
+                id,
+                name: objeto?.descricao || ''
+              })
+            }}
             }}
             addLabel="Novo Objeto"
             onImport={() => setImportObjetosOpen(true)}
@@ -766,8 +878,14 @@ export function PainelCadastros() {
               setRecursoFormOpen(true)
             }}
             onDelete={(id) => {
-              setRecursos((current) => (current || []).filter((item) => item.id !== id))
-              toast.success("Recurso excluído")
+              const recurso = recursos?.find(r => r.id === id)
+              setConfirmDelete({
+                open: true,
+                type: 'recurso',
+                id,
+                name: recurso?.nome || ''
+              })
+            }}
             }}
             addLabel="Novo Recurso"
             onImport={() => setImportRecursosOpen(true)}
@@ -882,6 +1000,32 @@ export function PainelCadastros() {
         description="Importe recursos em lote através de uma planilha Excel (.xlsx)"
         onDownloadTemplate={downloadRecursosTemplate}
         onImportExcel={importRecursosFromExcel}
+      />
+
+      {/* Modal de confirmação de exclusão */}
+      <ConfirmDialog
+        open={confirmDelete.open}
+        onOpenChange={(open) => setConfirmDelete({ ...confirmDelete, open })}
+        onConfirm={confirmDeleteAction}
+        title="Confirmar Exclusão"
+        description={`Tem certeza que deseja excluir ${confirmDelete.type === 'conta' ? 'a' : 'o'} ${confirmDelete.type} "${confirmDelete.name}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="danger"
+        icon="delete"
+      />
+
+      {/* Modal de confirmação de importação */}
+      <ConfirmDialog
+        open={confirmImport.open}
+        onOpenChange={(open) => setConfirmImport({ ...confirmImport, open })}
+        onConfirm={confirmImportAction}
+        title="Confirmar Importação"
+        description={`Deseja importar ${confirmImport.items.length} ${confirmImport.type}? Os dados serão adicionados aos registros existentes.`}
+        confirmText="Importar"
+        cancelText="Cancelar"
+        variant="warning"
+        icon="import"
       />
     </div>
   )
