@@ -30,6 +30,16 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
   useEffect(() => {
     isMountedRef.current = true
     
+    // Carrega dados do Firebase se não estiverem em cache
+    if (!globalCache.has(key)) {
+      loadFromFirestore(key, defaultValueRef.current).then((data) => {
+        if (isMountedRef.current && data !== null) {
+          globalCache.set(key, data)
+          setValue(data)
+        }
+      })
+    }
+    
     // Callback para quando dados mudarem
     const onDataChange = (data: any) => {
       if (isMountedRef.current) {
