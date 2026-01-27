@@ -12,7 +12,6 @@ import { CredorForm } from "@/components/cadastros/CredorForm"
 import { ObjetoForm } from "@/components/cadastros/ObjetoForm"
 import { RecursoForm } from "@/components/cadastros/RecursoForm"
 import { ImportCadastroDialog } from "@/components/ImportCadastroDialog"
-import { MigracaoFirebase } from "@/components/MigracaoFirebase"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { 
   Secretaria, 
@@ -496,9 +495,6 @@ export function PainelCadastros() {
         </p>
       </div>
 
-      {/* Botão de Migração Firebase */}
-      <MigracaoFirebase />
-
       <Tabs defaultValue="secretarias" className="space-y-4">
         <TabsList className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 w-full h-auto">
           <TabsTrigger value="secretarias">Secretarias & Setores</TabsTrigger>
@@ -855,16 +851,9 @@ export function PainelCadastros() {
           <GenericTable
             title="Recursos"
             description="Gerenciar recursos orçamentários"
-            data={recursosOrdenados.map(recurso => {
-              const secretaria = (secretarias || []).find(s => s.id === recurso.secretariaId)
-              return {
-                ...recurso,
-                secretariaNome: secretaria ? `${secretaria.sigla} - ${secretaria.nome}` : "N/A"
-              }
-            })}
+            data={recursosOrdenados}
             columns={[
               { key: "nome", label: "Nome" },
-              { key: "secretariaNome", label: "Secretaria" },
             ]}
             onAdd={() => {
               setRecursoEditando(undefined)

@@ -88,10 +88,12 @@ export async function criarUsuarioInicial(): Promise<Usuario> {
     permissoes: [
       { modulo: "processos", nivel: "admin" },
       { modulo: "metricas", nivel: "admin" },
+      { modulo: "previsoes", nivel: "admin" },
       { modulo: "resumo", nivel: "admin" },
       { modulo: "cadastros", nivel: "admin" },
       { modulo: "sincronizacao", nivel: "admin" },
       { modulo: "usuarios", nivel: "admin" },
+      { modulo: "firebase", nivel: "admin" },
     ],
     dataCriacao: new Date().toISOString(),
   }

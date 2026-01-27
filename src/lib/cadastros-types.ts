@@ -50,7 +50,7 @@ export interface Mes {
 export interface Recurso {
   id: string
   nome: string
-  secretariaId: string
+  secretariaId?: string
   ativo: boolean
 }
 

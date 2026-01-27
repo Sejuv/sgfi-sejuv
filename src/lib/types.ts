@@ -44,6 +44,7 @@ export type PermissaoModulo =
   | "sincronizacao"
   | "usuarios"
   | "previsoes"
+  | "firebase"
 
 export type NivelAcesso = "leitura" | "escrita" | "admin"
 

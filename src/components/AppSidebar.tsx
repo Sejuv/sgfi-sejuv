@@ -80,7 +80,7 @@ export function AppSidebar({ abaAtiva, onAbaChange, estatisticas, usuario, onLog
       title: "Firebase / Deploy",
       icon: Cloud,
       value: "firebase",
-      modulo: "sincronizacao" as const, // Usa mesma permissão de sincronização
+      modulo: "firebase" as const,
     },
   ]
 

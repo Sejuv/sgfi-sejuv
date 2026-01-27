@@ -471,7 +471,7 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
 
           <div className="space-y-2">
             <Label htmlFor="nf" className="flex items-center gap-2">
-              Nota Fiscal * 
+              Nota Fiscal
               <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted text-muted-foreground rounded">Alt+N</kbd>
             </Label>
             <Input
@@ -484,7 +484,6 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
                 setFormData({ ...formData, nf: value })
               }}
               placeholder="Somente números"
-              required
             />
           </div>
 

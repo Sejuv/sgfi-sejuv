@@ -26,6 +26,7 @@ const MODULOS: { value: PermissaoModulo; label: string }[] = [
   { value: "cadastros", label: "Cadastros" },
   { value: "sincronizacao", label: "Sincronização" },
   { value: "usuarios", label: "Usuários" },
+  { value: "firebase", label: "Firebase / Deploy" },
 ]
 
 const NIVEIS: { value: NivelAcesso; label: string; description: string }[] = [

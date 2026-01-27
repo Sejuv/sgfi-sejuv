@@ -1,13 +1,11 @@
 import { useEffect } from "react"
 import { useForm } from "react-hook-form"
-import { useFirebaseKV } from "@/hooks/useFirebaseKV"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Recurso, Secretaria } from "@/lib/cadastros-types"
+import { Recurso } from "@/lib/cadastros-types"
 
 interface RecursoFormProps {
   open: boolean
@@ -18,31 +16,21 @@ interface RecursoFormProps {
 }
 
 export function RecursoForm({ open, onOpenChange, recurso, onSave, recursosExistentes }: RecursoFormProps) {
-  const [secretarias] = useFirebaseKV<Secretaria[]>("cadastro-secretarias", [])
-  const { register, handleSubmit, formState: { errors }, reset, setValue, watch, setError, clearErrors } = useForm<Omit<Recurso, "id"> & { id?: string }>({
-    defaultValues: { nome: "", secretariaId: "", ativo: true },
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch, setError } = useForm<Omit<Recurso, "id"> & { id?: string }>({
+    defaultValues: { nome: "", ativo: true },
   })
 
   useEffect(() => {
     if (recurso) {
       setValue("id", recurso.id)
       setValue("nome", recurso.nome)
-      setValue("secretariaId", recurso.secretariaId)
       setValue("ativo", recurso.ativo)
     } else {
-      reset({ nome: "", secretariaId: "", ativo: true })
+      reset({ nome: "", ativo: true })
     }
   }, [recurso, setValue, reset])
 
-  useEffect(() => {
-    console.log('Secretarias carregadas no RecursoForm:', secretarias)
-  }, [secretarias])
-
   const ativo = watch("ativo", recurso?.ativo ?? true)
-  const secretariaId = watch("secretariaId", recurso?.secretariaId ?? "")
-
-  const secretariasAtivas = (secretarias || []).filter((s) => s.ativo)
-  console.log('Secretarias ativas:', secretariasAtivas)
 
   const onSubmit = (data: Omit<Recurso, "id"> & { id?: string }) => {
     const nomeNormalizado = data.nome.trim().toLowerCase()
@@ -55,14 +43,6 @@ export function RecursoForm({ open, onOpenChange, recurso, onSave, recursosExist
       setError("nome", {
         type: "manual",
         message: "Já existe um recurso com este nome",
-      })
-      return
-    }
-    
-    if (!data.secretariaId) {
-      setError("secretariaId", {
-        type: "manual",
-        message: "Secretaria é obrigatória",
       })
       return
     }
@@ -88,29 +68,6 @@ export function RecursoForm({ open, onOpenChange, recurso, onSave, recursosExist
               {...register("nome", { required: "Nome é obrigatório" })}
             />
             {errors.nome && <p className="text-sm text-destructive">{errors.nome.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="secretariaId">Secretaria *</Label>
-            <Select
-              value={secretariaId}
-              onValueChange={(value) => {
-                setValue("secretariaId", value)
-                clearErrors("secretariaId")
-              }}
-            >
-              <SelectTrigger id="secretariaId">
-                <SelectValue placeholder="Selecione uma secretaria" />
-              </SelectTrigger>
-              <SelectContent>
-                {secretariasAtivas.map((secretaria) => (
-                  <SelectItem key={secretaria.id} value={secretaria.id}>
-                    {secretaria.sigla} - {secretaria.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.secretariaId && <p className="text-sm text-destructive">{errors.secretariaId.message}</p>}
           </div>
 
           <div className="flex items-center justify-between space-x-2">
