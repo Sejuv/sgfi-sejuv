@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useFirebaseKV } from "@/hooks/useFirebaseKV"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
@@ -92,6 +92,37 @@ export function PainelCadastros() {
   const [importCredoresOpen, setImportCredoresOpen] = useState(false)
   const [importObjetosOpen, setImportObjetosOpen] = useState(false)
   const [importRecursosOpen, setImportRecursosOpen] = useState(false)
+
+  // Listas ordenadas alfabeticamente
+  const secretariasOrdenadas = useMemo(() => 
+    [...(secretarias || [])].sort((a, b) => a.nome.localeCompare(b.nome)),
+    [secretarias]
+  )
+
+  const setoresOrdenados = useMemo(() => 
+    [...(setores || [])].sort((a, b) => a.nome.localeCompare(b.nome)),
+    [setores]
+  )
+
+  const contasOrdenadas = useMemo(() => 
+    [...(contas || [])].sort((a, b) => a.tipo.localeCompare(b.tipo)),
+    [contas]
+  )
+
+  const credoresOrdenados = useMemo(() => 
+    [...(credores || [])].sort((a, b) => a.nome.localeCompare(b.nome)),
+    [credores]
+  )
+
+  const objetosOrdenados = useMemo(() => 
+    [...(objetos || [])].sort((a, b) => a.descricao.localeCompare(b.descricao)),
+    [objetos]
+  )
+
+  const recursosOrdenados = useMemo(() => 
+    [...(recursos || [])].sort((a, b) => a.nome.localeCompare(b.nome)),
+    [recursos]
+  )
 
   const handleSaveSecretaria = (data: Omit<Secretaria, "id"> & { id?: string }) => {
     setSecretarias((current) => {
@@ -432,7 +463,7 @@ export function PainelCadastros() {
             </div>
 
             <div className="space-y-2">
-              {(secretarias || []).map((secretaria) => {
+              {secretariasOrdenadas.map((secretaria) => {
                 const setoresDaSecretaria = (setores || [])
                   .filter((s) => s.secretariaId === secretaria.id)
                   .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
@@ -600,7 +631,7 @@ export function PainelCadastros() {
           <GenericTable
             title="Setores"
             description="Gerenciar setores e departamentos"
-            data={(setores || []).map(setor => {
+            data={setoresOrdenados.map(setor => {
               const secretaria = (secretarias || []).find(s => s.id === setor.secretariaId)
               return {
                 ...setor,
@@ -632,7 +663,7 @@ export function PainelCadastros() {
           <GenericTable
             title="Contas"
             description="Gerenciar tipos de conta"
-            data={contas || []}
+            data={contasOrdenadas}
             columns={[
               { key: "tipo", label: "Tipo" },
               { key: "descricao", label: "Descrição" },
@@ -659,7 +690,7 @@ export function PainelCadastros() {
           <GenericTable
             title="Credores"
             description="Gerenciar fornecedores e credores"
-            data={credores || []}
+            data={credoresOrdenados}
             columns={[
               { key: "nome", label: "Nome" },
               { key: "tipo", label: "Tipo" },
@@ -688,7 +719,7 @@ export function PainelCadastros() {
           <GenericTable
             title="Objetos"
             description="Gerenciar objetos de despesa"
-            data={objetos || []}
+            data={objetosOrdenados}
             columns={[
               { key: "descricao", label: "Descrição" },
               { key: "categoria", label: "Categoria" },
@@ -715,7 +746,7 @@ export function PainelCadastros() {
           <GenericTable
             title="Recursos"
             description="Gerenciar recursos orçamentários"
-            data={(recursos || []).map(recurso => {
+            data={recursosOrdenados.map(recurso => {
               const secretaria = (secretarias || []).find(s => s.id === recurso.secretariaId)
               return {
                 ...recurso,
