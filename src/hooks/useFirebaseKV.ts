@@ -8,30 +8,35 @@ import type { Unsubscribe } from 'firebase/firestore'
  */
 export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T) => void] {
   const [value, setValue] = useState<T>(defaultValue)
-  const [isLoaded, setIsLoaded] = useState(false)
   const unsubscribeRef = useRef<Unsubscribe | null>(null)
+  const isMountedRef = useRef(true)
 
-  // Carrega dados iniciais do Firebase
+  // Carrega dados iniciais do Firebase e configura sincronização em tempo real
   useEffect(() => {
+    isMountedRef.current = true
+    
+    // Carrega dados iniciais
     loadFromFirestore(key, defaultValue).then(data => {
-      setValue(data)
-      setIsLoaded(true)
+      if (isMountedRef.current) {
+        setValue(data)
+      }
     })
 
     // Se inscreve para atualizações em tempo real
     unsubscribeRef.current = subscribeToFirestore(key, (data) => {
-      if (isLoaded) {
+      if (isMountedRef.current) {
         setValue(data)
       }
     }, defaultValue)
 
     // Cleanup: cancela inscrição quando componente desmonta
     return () => {
+      isMountedRef.current = false
       if (unsubscribeRef.current) {
         unsubscribeRef.current()
       }
     }
-  }, [key])
+  }, [key, defaultValue])
 
   // Salva no Firebase quando valor muda
   const updateValue = (newValue: T) => {
