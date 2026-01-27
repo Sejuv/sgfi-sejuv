@@ -6,6 +6,7 @@ import type { Unsubscribe } from 'firebase/firestore'
 const globalCache = new Map<string, any>()
 const globalListeners = new Map<string, Set<(data: any) => void>>()
 const globalUnsubscribers = new Map<string, Unsubscribe>()
+const savingKeys = new Set<string>() // Rastreia quais keys estão sendo salvas
 
 /**
  * Hook para usar Firebase Firestore com sincronização em tempo real
@@ -46,6 +47,12 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
     // Cria listener global apenas se não existir
     if (!globalUnsubscribers.has(key)) {
       const unsubscribe = subscribeToFirestore(key, (data) => {
+        // Ignora atualizações do listener se estamos salvando essa key
+        if (savingKeys.has(key)) {
+          console.log(`⏭️ Ignorando atualização do listener para "${key}" (salvamento em andamento)`)
+          return
+        }
+        
         globalCache.set(key, data)
         // Notifica todos os listeners locais
         const listeners = globalListeners.get(key)
@@ -83,7 +90,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
     }
   }, [key]) // Removido defaultValue das dependências
 
-  // Salva no Firebase com debounce para evitar escritas excessivas
+  // Salva no Firebase imediatamente
   const updateValue = useCallback((newValue: T | ((prev: T) => T)) => {
     const resolvedValue = typeof newValue === 'function' 
       ? (newValue as (prev: T) => T)(value)
@@ -92,16 +99,21 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
     setValue(resolvedValue)
     globalCache.set(key, resolvedValue)
     
-    // Debounce: aguarda 300ms antes de salvar no Firebase
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
+    // Marca que estamos salvando essa key
+    savingKeys.add(key)
     
-    saveTimeoutRef.current = setTimeout(() => {
-      saveToFirestore(key, resolvedValue).catch(error => {
-        console.error('❌ Erro ao salvar:', error)
+    // Salva imediatamente no Firebase
+    saveToFirestore(key, resolvedValue)
+      .then(() => {
+        // Aguarda um pouco antes de permitir atualizações do listener novamente
+        setTimeout(() => {
+          savingKeys.delete(key)
+        }, 500)
       })
-    }, 300)
+      .catch(error => {
+        console.error('❌ Erro ao salvar:', error)
+        savingKeys.delete(key)
+      })
   }, [key, value])
 
   return [value, updateValue]

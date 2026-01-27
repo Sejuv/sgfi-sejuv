@@ -25,8 +25,9 @@ export interface FirebaseData {
 export async function saveToFirestore(key: string, data: any): Promise<void> {
   try {
     const docRef = doc(db, COLLECTION_NAME, key)
+    console.log(`🔥 Tentando salvar em "${key}"...`, { collection: COLLECTION_NAME, docId: key })
     await setDoc(docRef, { data, updatedAt: new Date().toISOString() })
-    // console.log(`🔥 Firebase: Dados salvos em "${key}"`)
+    console.log(`✅ Firebase: Dados salvos com sucesso em "${key}"`)
   } catch (error) {
     console.error(`❌ Erro ao salvar no Firebase (${key}):`, error)
     throw error
@@ -64,14 +65,15 @@ export function subscribeToFirestore(
   defaultValue: any = null
 ): Unsubscribe {
   const docRef = doc(db, COLLECTION_NAME, key)
+  console.log(`📡 Inscrevendo listener para "${key}"`)
   
   return onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data().data
-      // console.log(`🔥 Firebase: Atualização recebida em "${key}"`, data)
+      console.log(`📥 Firebase: Dados recebidos em "${key}"`)
       callback(data)
     } else {
-      // console.log(`🔥 Firebase: Documento "${key}" deletado, usando valor padrão`)
+      console.log(`⚠️ Firebase: Documento "${key}" não existe, usando valor padrão`)
       callback(defaultValue)
     }
   }, (error) => {

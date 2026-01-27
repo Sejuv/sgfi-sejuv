@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regras para a coleção principal do sistema
+    match /sistema-gestao/{document=**} {
+      // Permitir leitura e escrita para todos (modo de desenvolvimento)
+      // ⚠️ ATENÇÃO: Em produção, adicione autenticação adequada
+      allow read, write: if true;
+    }
+    
+    // Se precisar de outras coleções, adicione aqui:
+    // match /outra-colecao/{document=**} {
+    //   allow read, write: if request.auth != null;
+    // }
+  }
+}
