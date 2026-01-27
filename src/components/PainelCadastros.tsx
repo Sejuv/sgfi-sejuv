@@ -250,68 +250,92 @@ export function PainelCadastros() {
   }
 
   const handleImportSecretarias = (items: Omit<Secretaria, "id">[]) => {
+    console.log('📥 Importando secretarias:', items.length)
     setSecretarias((current) => {
       const currentArray = current || []
+      console.log('📊 Secretarias atuais:', currentArray.length)
       const novosItens = items.map((item, index) => ({
         ...item,
         id: `${Date.now()}-${index}`,
       }))
-      return [...currentArray, ...novosItens]
+      const resultado = [...currentArray, ...novosItens]
+      console.log('✅ Total após importação:', resultado.length)
+      return resultado
     })
   }
 
   const handleImportSetores = (items: Omit<Setor, "id">[]) => {
+    console.log('📥 Importando setores:', items.length)
     setSetores((current) => {
       const currentArray = current || []
+      console.log('📊 Setores atuais:', currentArray.length)
       const novosItens = items.map((item, index) => ({
         ...item,
         id: `${Date.now()}-${index}`,
       }))
-      return [...currentArray, ...novosItens]
+      const resultado = [...currentArray, ...novosItens]
+      console.log('✅ Total após importação:', resultado.length)
+      return resultado
     })
   }
 
   const handleImportContas = (items: Omit<Conta, "id">[]) => {
+    console.log('📥 Importando contas:', items.length)
     setContas((current) => {
       const currentArray = current || []
+      console.log('📊 Contas atuais:', currentArray.length)
       const novosItens = items.map((item, index) => ({
         ...item,
         id: `${Date.now()}-${index}`,
       }))
-      return [...currentArray, ...novosItens]
+      const resultado = [...currentArray, ...novosItens]
+      console.log('✅ Total após importação:', resultado.length)
+      return resultado
     })
   }
 
   const handleImportCredores = (items: Omit<Credor, "id">[]) => {
+    console.log('📥 Importando credores:', items.length)
     setCredores((current) => {
       const currentArray = current || []
+      console.log('📊 Credores atuais:', currentArray.length)
       const novosItens = items.map((item, index) => ({
         ...item,
         id: `${Date.now()}-${index}`,
       }))
-      return [...currentArray, ...novosItens]
+      const resultado = [...currentArray, ...novosItens]
+      console.log('✅ Total após importação:', resultado.length)
+      return resultado
     })
   }
 
   const handleImportObjetos = (items: Omit<Objeto, "id">[]) => {
+    console.log('📥 Importando objetos:', items.length)
     setObjetos((current) => {
       const currentArray = current || []
+      console.log('📊 Objetos atuais:', currentArray.length)
       const novosItens = items.map((item, index) => ({
         ...item,
         id: `${Date.now()}-${index}`,
       }))
-      return [...currentArray, ...novosItens]
+      const resultado = [...currentArray, ...novosItens]
+      console.log('✅ Total após importação:', resultado.length)
+      return resultado
     })
   }
 
   const handleImportRecursos = (items: Omit<Recurso, "id">[]) => {
+    console.log('📥 Importando recursos:', items.length)
     setRecursos((current) => {
       const currentArray = current || []
+      console.log('📊 Recursos atuais:', currentArray.length)
       const novosItens = items.map((item, index) => ({
         ...item,
         id: `${Date.now()}-${index}`,
       }))
-      return [...currentArray, ...novosItens]
+      const resultado = [...currentArray, ...novosItens]
+      console.log('✅ Total após importação:', resultado.length)
+      return resultado
     })
   }
 
