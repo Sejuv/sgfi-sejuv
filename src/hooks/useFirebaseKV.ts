@@ -2,93 +2,103 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { loadFromFirestore, saveToFirestore, subscribeToFirestore } from '@/lib/firebase-service'
 import type { Unsubscribe } from 'firebase/firestore'
 
-// Cache global para evitar múltiplos listeners para a mesma key
 const globalCache = new Map<string, any>()
 const globalListeners = new Map<string, Set<(data: any) => void>>()
 const globalUnsubscribers = new Map<string, Unsubscribe>()
-const savingKeys = new Set<string>() // Rastreia quais keys estão sendo salvas
+const savingKeys = new Set<string>()
+const loadingPromises = new Map<string, Promise<any>>()
 
-/**
- * Hook para usar Firebase Firestore com sincronização em tempo real
- * Usa cache global para evitar múltiplos listeners para a mesma key
- */
 export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void] {
-  // Usa ref para defaultValue para evitar re-execução do useEffect
   const defaultValueRef = useRef<T>(defaultValue)
   
   const [value, setValue] = useState<T>(() => {
-    // Tenta usar o cache primeiro
     if (globalCache.has(key)) {
-      console.log(`💾 useFirebaseKV: Inicializando "${key}" com cache`, globalCache.get(key))
+      console.log(`💾 [${key}] Inicializando com cache`)
       return globalCache.get(key)
     }
-    console.log(`💾 useFirebaseKV: Inicializando "${key}" com defaultValue`, defaultValue)
+    console.log(`💾 [${key}] Inicializando com defaultValue`)
     return defaultValue
   })
   
   const isMountedRef = useRef(true)
-  const saveTimeoutRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
     isMountedRef.current = true
     
-    // Carrega dados do Firebase se não estiverem em cache
-    if (!globalCache.has(key)) {
-      console.log(`🔄 Carregando dados iniciais do Firebase para "${key}"`)
-      loadFromFirestore(key, defaultValueRef.current).then((data) => {
-        if (isMountedRef.current) {
-          console.log(`📦 Dados carregados do Firebase para "${key}":`, data)
-          globalCache.set(key, data)
-          setValue(data)
-        }
-      }).catch((error) => {
-        console.error(`❌ Erro ao carregar dados iniciais de "${key}":`, error)
-        globalCache.set(key, defaultValueRef.current)
-        setValue(defaultValueRef.current)
-      })
-    } else {
-      console.log(`💾 Usando cache existente para "${key}"`)
-    }
-    
-    // Callback para quando dados mudarem
     const onDataChange = (data: any) => {
       if (isMountedRef.current) {
-        console.log(`🔔 Dados alterados para "${key}":`, data)
+        console.log(`🔔 [${key}] Dados alterados`)
         globalCache.set(key, data)
         setValue(data)
       }
     }
 
-    // Registra listener local
     if (!globalListeners.has(key)) {
       globalListeners.set(key, new Set())
     }
     globalListeners.get(key)!.add(onDataChange)
 
-    // Cria listener global apenas se não existir
-    if (!globalUnsubscribers.has(key)) {
-      console.log(`📡 Criando listener do Firebase para "${key}"`)
-      const unsubscribe = subscribeToFirestore(key, (data) => {
-        // Ignora atualizações do listener se estamos salvando essa key
-        if (savingKeys.has(key)) {
-          console.log(`⏭️ Ignorando atualização do listener para "${key}" (salvamento em andamento)`)
-          return
+    const initializeData = async () => {
+      if (!globalCache.has(key)) {
+        if (!loadingPromises.has(key)) {
+          console.log(`🔄 [${key}] Iniciando carregamento do Firebase`)
+          const loadPromise = loadFromFirestore(key, defaultValueRef.current)
+            .then((data) => {
+              console.log(`✅ [${key}] Dados carregados do Firebase`)
+              globalCache.set(key, data)
+              if (isMountedRef.current) {
+                setValue(data)
+              }
+              loadingPromises.delete(key)
+              return data
+            })
+            .catch((error) => {
+              console.error(`❌ [${key}] Erro ao carregar:`, error)
+              globalCache.set(key, defaultValueRef.current)
+              if (isMountedRef.current) {
+                setValue(defaultValueRef.current)
+              }
+              loadingPromises.delete(key)
+              return defaultValueRef.current
+            })
+          
+          loadingPromises.set(key, loadPromise)
+          await loadPromise
+        } else {
+          console.log(`⏳ [${key}] Aguardando carregamento em andamento`)
+          await loadingPromises.get(key)
         }
+      } else {
+        console.log(`♻️ [${key}] Usando cache existente`)
+      }
+
+      if (!globalUnsubscribers.has(key)) {
+        console.log(`📡 [${key}] Criando listener do Firebase`)
+        const unsubscribe = subscribeToFirestore(
+          key,
+          (listenerData) => {
+            if (savingKeys.has(key)) {
+              console.log(`⏭️ [${key}] Ignorando atualização (salvamento em andamento)`)
+              return
+            }
+            
+            console.log(`📥 [${key}] Atualização recebida do listener`)
+            globalCache.set(key, listenerData)
+            
+            const listeners = globalListeners.get(key)
+            if (listeners) {
+              listeners.forEach(listener => listener(listenerData))
+            }
+          },
+          defaultValueRef.current
+        )
         
-        console.log(`📥 Dados recebidos do Firebase para "${key}":`, data)
-        
-        globalCache.set(key, data)
-        // Notifica todos os listeners locais
-        const listeners = globalListeners.get(key)
-        if (listeners) {
-          listeners.forEach(listener => listener(data))
-        }
-      }, defaultValueRef.current)
-      
-      globalUnsubscribers.set(key, unsubscribe)
+        globalUnsubscribers.set(key, unsubscribe)
+      }
     }
 
-    // Cleanup: remove listener local
+    initializeData()
+
     return () => {
       isMountedRef.current = false
       
@@ -96,9 +106,8 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
       if (listeners) {
         listeners.delete(onDataChange)
         
-        // Se não há mais listeners, remove o listener global
         if (listeners.size === 0) {
-          console.log(`🔌 Removendo listener do Firebase para "${key}"`)
+          console.log(`🔌 [${key}] Removendo listener (sem mais ouvintes)`)
           const unsubscribe = globalUnsubscribers.get(key)
           if (unsubscribe) {
             unsubscribe()
@@ -107,39 +116,30 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
           globalListeners.delete(key)
         }
       }
-      
-      // Limpa timeout pendente
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-      }
     }
-  }, [key]) // Removido defaultValue das dependências
+  }, [key])
 
-  // Salva no Firebase imediatamente
   const updateValue = useCallback((newValue: T | ((prev: T) => T)) => {
     setValue((currentValue) => {
       const resolvedValue = typeof newValue === 'function' 
         ? (newValue as (prev: T) => T)(currentValue)
         : newValue
       
-      console.log(`💾 Salvando dados em "${key}":`, resolvedValue)
+      console.log(`💾 [${key}] Salvando no Firebase`)
       globalCache.set(key, resolvedValue)
       
-      // Marca que estamos salvando essa key
       savingKeys.add(key)
       
-      // Salva imediatamente no Firebase
       saveToFirestore(key, resolvedValue)
         .then(() => {
-          console.log(`✅ Dados salvos com sucesso no Firebase em "${key}"`)
-          // Aguarda um pouco antes de permitir atualizações do listener novamente
+          console.log(`✅ [${key}] Salvo com sucesso`)
           setTimeout(() => {
             savingKeys.delete(key)
-            console.log(`🔓 Liberando listener para "${key}"`)
+            console.log(`🔓 [${key}] Liberando listener`)
           }, 500)
         })
         .catch(error => {
-          console.error(`❌ Erro ao salvar em "${key}":`, error)
+          console.error(`❌ [${key}] Erro ao salvar:`, error)
           savingKeys.delete(key)
         })
       
