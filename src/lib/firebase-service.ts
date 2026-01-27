@@ -20,13 +20,40 @@ export interface FirebaseData {
 }
 
 /**
+ * Remove valores undefined de um objeto (recursivamente)
+ */
+function removeUndefined(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return null
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefined(item))
+  }
+  
+  if (typeof obj === 'object') {
+    const cleaned: any = {}
+    for (const key in obj) {
+      const value = obj[key]
+      if (value !== undefined) {
+        cleaned[key] = removeUndefined(value)
+      }
+    }
+    return cleaned
+  }
+  
+  return obj
+}
+
+/**
  * Salva dados no Firestore
  */
 export async function saveToFirestore(key: string, data: any): Promise<void> {
   try {
     const docRef = doc(db, COLLECTION_NAME, key)
+    const cleanedData = removeUndefined(data)
     console.log(`🔥 Tentando salvar em "${key}"...`, { collection: COLLECTION_NAME, docId: key })
-    await setDoc(docRef, { data, updatedAt: new Date().toISOString() })
+    await setDoc(docRef, { data: cleanedData, updatedAt: new Date().toISOString() })
     console.log(`✅ Firebase: Dados salvos com sucesso em "${key}"`)
   } catch (error) {
     console.error(`❌ Erro ao salvar no Firebase (${key}):`, error)
