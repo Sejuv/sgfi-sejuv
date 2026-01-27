@@ -94,30 +94,32 @@ function App() {
     return { total, pendentes, quantidade: processosFiltrados.length }
   }, [processosFiltrados])
 
-  // Ref para rastrear se já tentamos inicializar
-  const [tentouInicializar, setTentouInicializar] = useState(false)
+  // Inicializa usuário admin apenas UMA VEZ na montagem do componente
+  const inicializadoRef = useRef(false)
   
   useEffect(() => {
     const inicializarUsuarios = async () => {
-      // Evita múltiplas inicializações
-      if (tentouInicializar) return
+      // Já tentou inicializar? Sai
+      if (inicializadoRef.current) return
+      inicializadoRef.current = true
+      
+      // Aguarda um pouco para dar tempo do Firebase carregar
+      await new Promise(resolve => setTimeout(resolve, 1000))
       
       const usuariosExistentes = usuarios || []
       
-      // Só cria usuário se realmente não existir nenhum
+      // Só cria usuário se realmente não existir nenhum após o carregamento
       if (usuariosExistentes.length === 0) {
-        console.log("📝 Criando usuário administrativo inicial...")
+        console.log("📝 Nenhum usuário encontrado. Criando usuário administrativo inicial...")
         const usuarioAdmin = await criarUsuarioInicial()
         setUsuarios([usuarioAdmin])
-        setTentouInicializar(true)
       } else {
         console.log(`✅ ${usuariosExistentes.length} usuário(s) já cadastrado(s)`)
-        setTentouInicializar(true)
       }
     }
     
     inicializarUsuarios()
-  }, [usuarios, setUsuarios, tentouInicializar])
+  }, []) // Array vazio - executa apenas UMA VEZ
 
   const handleLogin = async (email: string, senha: string): Promise<boolean> => {
     const usuariosArray = usuarios || []
