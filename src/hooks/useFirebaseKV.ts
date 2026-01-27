@@ -33,7 +33,8 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
     // Carrega dados do Firebase se não estiverem em cache
     if (!globalCache.has(key)) {
       loadFromFirestore(key, defaultValueRef.current).then((data) => {
-        if (isMountedRef.current && data !== null) {
+        if (isMountedRef.current) {
+          // Sempre atualiza cache e state, mesmo se data for defaultValue
           globalCache.set(key, data)
           setValue(data)
         }

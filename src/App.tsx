@@ -94,19 +94,30 @@ function App() {
     return { total, pendentes, quantidade: processosFiltrados.length }
   }, [processosFiltrados])
 
+  // Ref para rastrear se já tentamos inicializar
+  const [tentouInicializar, setTentouInicializar] = useState(false)
+  
   useEffect(() => {
     const inicializarUsuarios = async () => {
+      // Evita múltiplas inicializações
+      if (tentouInicializar) return
+      
       const usuariosExistentes = usuarios || []
       
+      // Só cria usuário se realmente não existir nenhum
       if (usuariosExistentes.length === 0) {
+        console.log("📝 Criando usuário administrativo inicial...")
         const usuarioAdmin = await criarUsuarioInicial()
         setUsuarios([usuarioAdmin])
+        setTentouInicializar(true)
+      } else {
+        console.log(`✅ ${usuariosExistentes.length} usuário(s) já cadastrado(s)`)
+        setTentouInicializar(true)
       }
     }
     
-    // Só inicializa uma vez quando o componente monta
     inicializarUsuarios()
-  }, [])
+  }, [usuarios, setUsuarios, tentouInicializar])
 
   const handleLogin = async (email: string, senha: string): Promise<boolean> => {
     const usuariosArray = usuarios || []
