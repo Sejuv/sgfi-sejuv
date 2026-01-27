@@ -12,6 +12,7 @@ import { CredorForm } from "@/components/cadastros/CredorForm"
 import { ObjetoForm } from "@/components/cadastros/ObjetoForm"
 import { RecursoForm } from "@/components/cadastros/RecursoForm"
 import { ImportCadastroDialog } from "@/components/ImportCadastroDialog"
+import { MigracaoFirebase } from "@/components/MigracaoFirebase"
 import { 
   Secretaria, 
   Setor, 
@@ -352,6 +353,9 @@ export function PainelCadastros() {
           Gerencie as informações básicas do sistema
         </p>
       </div>
+
+      {/* Botão de Migração Firebase */}
+      <MigracaoFirebase />
 
       <Tabs defaultValue="secretarias" className="space-y-4">
         <TabsList className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 w-full h-auto">
