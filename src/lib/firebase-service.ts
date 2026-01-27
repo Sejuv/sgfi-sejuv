@@ -100,10 +100,9 @@ export function subscribeToFirestore(
       console.log(`📥 Firebase: Dados recebidos em "${key}"`)
       callback(data)
     } else {
-      // Só usa defaultValue se for explicitamente null/undefined/array vazio
-      // Não sobrescreve dados existentes no cache
-      console.log(`⚠️ Firebase: Documento "${key}" não existe no Firestore`)
-      // Não chama callback aqui para evitar sobrescrever dados em cache
+      // Documento não existe - chama callback com defaultValue apenas se não houver dados em cache
+      console.log(`⚠️ Firebase: Documento "${key}" não existe no Firestore, usando defaultValue`)
+      callback(defaultValue)
     }
   }, (error) => {
     console.error(`❌ Erro ao escutar mudanças no Firebase (${key}):`, error)

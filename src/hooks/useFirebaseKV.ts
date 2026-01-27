@@ -64,6 +64,15 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
           return
         }
         
+        // Se o listener retornar defaultValue mas já temos dados em cache, mantém o cache
+        const cachedData = globalCache.get(key)
+        const isDefaultValue = JSON.stringify(data) === JSON.stringify(defaultValueRef.current)
+        
+        if (isDefaultValue && cachedData && JSON.stringify(cachedData) !== JSON.stringify(defaultValueRef.current)) {
+          console.log(`⚠️ Mantendo dados em cache para "${key}" (ignorando defaultValue do listener)`)
+          return
+        }
+        
         globalCache.set(key, data)
         // Notifica todos os listeners locais
         const listeners = globalListeners.get(key)
@@ -116,10 +125,11 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
     // Salva imediatamente no Firebase
     saveToFirestore(key, resolvedValue)
       .then(() => {
+        console.log(`✅ Dados salvos com sucesso em "${key}"`)
         // Aguarda um pouco antes de permitir atualizações do listener novamente
         setTimeout(() => {
           savingKeys.delete(key)
-        }, 500)
+        }, 1000) // Aumentado de 500ms para 1000ms
       })
       .catch(error => {
         console.error('❌ Erro ao salvar:', error)
