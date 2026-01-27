@@ -778,7 +778,7 @@ export function PainelCadastros() {
                 id,
                 name: conta?.tipo || ''
               })
-            }
+            }}
             addLabel="Nova Conta"
             onImport={() => setImportContasOpen(true)}
             onExport={handleExportContas}
@@ -812,7 +812,7 @@ export function PainelCadastros() {
                 id,
                 name: credor?.nome || ''
               })
-            }
+            }}
             addLabel="Novo Credor"
             onImport={() => setImportCredoresOpen(true)}
             onExport={handleExportCredores}
@@ -844,7 +844,7 @@ export function PainelCadastros() {
                 id,
                 name: objeto?.descricao || ''
               })
-            }
+            }}
             addLabel="Novo Objeto"
             onImport={() => setImportObjetosOpen(true)}
             onExport={handleExportObjetos}
@@ -882,7 +882,7 @@ export function PainelCadastros() {
                 id,
                 name: recurso?.nome || ''
               })
-            }
+            }}
             addLabel="Novo Recurso"
             onImport={() => setImportRecursosOpen(true)}
             onExport={handleExportRecursos}
