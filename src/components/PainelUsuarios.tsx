@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { useKV } from "@/hooks/useKV"
+import { useFirebaseKV } from "@/hooks/useFirebaseKV"
 import { Usuario } from "@/lib/types"
 import { UsuarioForm } from "@/components/UsuarioForm"
 import { UsuariosTable } from "@/components/UsuariosTable"
@@ -12,7 +12,7 @@ import { MagnifyingGlass, User, CheckCircle, XCircle, ShieldCheck, Plus } from "
 import { toast } from "sonner"
 
 export function PainelUsuarios() {
-  const [usuarios, setUsuarios] = useKV<Usuario[]>("usuarios", [])
+  const [usuarios, setUsuarios] = useFirebaseKV<Usuario[]>("usuarios", [])
   const [formOpen, setFormOpen] = useState(false)
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | undefined>()
   const [busca, setBusca] = useState("")

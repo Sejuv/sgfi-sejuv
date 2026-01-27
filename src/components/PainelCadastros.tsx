@@ -59,12 +59,12 @@ import {
 } from "@/components/ui/collapsible"
 
 export function PainelCadastros() {
-  const [secretarias, setSecretarias] = useKV<Secretaria[]>("cadastro-secretarias", [])
-  const [setores, setSetores] = useKV<Setor[]>("cadastro-setores", [])
-  const [contas, setContas] = useKV<Conta[]>("cadastro-contas", [])
-  const [credores, setCredores] = useKV<Credor[]>("cadastro-credores", [])
-  const [objetos, setObjetos] = useKV<Objeto[]>("cadastro-objetos", [])
-  const [recursos, setRecursos] = useKV<Recurso[]>("cadastro-recursos", [])
+  const [secretarias, setSecretarias] = useFirebaseKV<Secretaria[]>("cadastro-secretarias", [])
+  const [setores, setSetores] = useFirebaseKV<Setor[]>("cadastro-setores", [])
+  const [contas, setContas] = useFirebaseKV<Conta[]>("cadastro-contas", [])
+  const [credores, setCredores] = useFirebaseKV<Credor[]>("cadastro-credores", [])
+  const [objetos, setObjetos] = useFirebaseKV<Objeto[]>("cadastro-objetos", [])
+  const [recursos, setRecursos] = useFirebaseKV<Recurso[]>("cadastro-recursos", [])
 
   const [secretariaFormOpen, setSecretariaFormOpen] = useState(false)
   const [setorFormOpen, setSetorFormOpen] = useState(false)

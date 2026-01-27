@@ -27,9 +27,9 @@ interface FiltrosPanelProps {
 }
 
 export function FiltrosPanel({ filtros, onFiltrosChange }: FiltrosPanelProps) {
-  const [secretarias] = useKV<Secretaria[]>("cadastro-secretarias", [])
-  const [recursos] = useKV<Recurso[]>("cadastro-recursos", [])
-  const [credores] = useKV<Credor[]>("cadastro-credores", [])
+  const [secretarias] = useFirebaseKV<Secretaria[]>("cadastro-secretarias", [])
+  const [recursos] = useFirebaseKV<Recurso[]>("cadastro-recursos", [])
+  const [credores] = useFirebaseKV<Credor[]>("cadastro-credores", [])
 
   const anosDisponiveis = useMemo(() => {
     const anoAtual = new Date().getFullYear()

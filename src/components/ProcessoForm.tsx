@@ -8,7 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CurrencyInput } from "@/components/CurrencyInput"
 import { useState, useEffect, useMemo, useRef } from "react"
-import { useKV } from "@/hooks/useKV"
+import { useFirebaseKV } from "@/hooks/useFirebaseKV"
 import { Check, CaretUpDown } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -45,13 +45,13 @@ const MESES_DO_ANO = [
 ]
 
 export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoFormProps) {
-  const [secretarias] = useKV<Secretaria[]>("cadastro-secretarias", [])
-  const [setores] = useKV<Setor[]>("cadastro-setores", [])
-  const [contas] = useKV<Conta[]>("cadastro-contas", [])
-  const [credores] = useKV<Credor[]>("cadastro-credores", [])
-  const [objetos] = useKV<Objeto[]>("cadastro-objetos", [])
-  const [meses] = useKV<Mes[]>("cadastro-meses", [])
-  const [recursos] = useKV<Recurso[]>("cadastro-recursos", [])
+  const [secretarias] = useFirebaseKV<Secretaria[]>("cadastro-secretarias", [])
+  const [setores] = useFirebaseKV<Setor[]>("cadastro-setores", [])
+  const [contas] = useFirebaseKV<Conta[]>("cadastro-contas", [])
+  const [credores] = useFirebaseKV<Credor[]>("cadastro-credores", [])
+  const [objetos] = useFirebaseKV<Objeto[]>("cadastro-objetos", [])
+  const [meses] = useFirebaseKV<Mes[]>("cadastro-meses", [])
+  const [recursos] = useFirebaseKV<Recurso[]>("cadastro-recursos", [])
 
   useEffect(() => {
     console.log('📊 Dados carregados no ProcessoForm:')

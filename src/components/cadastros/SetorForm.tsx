@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { useForm } from "react-hook-form"
-import { useKV } from "@/hooks/useKV"
+import { useFirebaseKV } from "@/hooks/useFirebaseKV"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,7 @@ interface SetorFormProps {
 }
 
 export function SetorForm({ open, onOpenChange, setor, onSave, secretariaIdInicial }: SetorFormProps) {
-  const [secretarias] = useKV<Secretaria[]>("cadastro-secretarias", [])
+  const [secretarias] = useFirebaseKV<Secretaria[]>("cadastro-secretarias", [])
   const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<Omit<Setor, "id"> & { id?: string }>({
     defaultValues: { nome: "", secretariaId: "", descricao: "", ativo: true },
   })
