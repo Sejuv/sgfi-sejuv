@@ -13,6 +13,7 @@ import { ObjetoForm } from "@/components/cadastros/ObjetoForm"
 import { RecursoForm } from "@/components/cadastros/RecursoForm"
 import { ImportCadastroDialog } from "@/components/ImportCadastroDialog"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
+import { ConfiguracoesSistema } from "@/components/ConfiguracoesSistema"
 import { 
   Secretaria, 
   Setor, 
@@ -496,12 +497,13 @@ export function PainelCadastros() {
       </div>
 
       <Tabs defaultValue="secretarias" className="space-y-4">
-        <TabsList className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 w-full h-auto">
+        <TabsList className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 w-full h-auto">
           <TabsTrigger value="secretarias">Secretarias & Setores</TabsTrigger>
           <TabsTrigger value="contas">Contas</TabsTrigger>
           <TabsTrigger value="credores">Credores</TabsTrigger>
           <TabsTrigger value="objetos">Objetos</TabsTrigger>
           <TabsTrigger value="recursos">Recursos</TabsTrigger>
+          <TabsTrigger value="sistema">Sistema</TabsTrigger>
         </TabsList>
 
         <TabsContent value="secretarias">
@@ -876,6 +878,10 @@ export function PainelCadastros() {
             onImport={() => setImportRecursosOpen(true)}
             onExport={handleExportRecursos}
           />
+        </TabsContent>
+
+        <TabsContent value="sistema">
+          <ConfiguracoesSistema />
         </TabsContent>
       </Tabs>
 

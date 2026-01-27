@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Logo placeholder - Substitua este arquivo pela logo oficial do município -->
+  <rect width="200" height="200" fill="#0066CC" rx="20"/>
+  <circle cx="100" cy="80" r="40" fill="white" opacity="0.3"/>
+  <rect x="60" y="130" width="80" height="50" fill="white" opacity="0.3" rx="5"/>
+  <text x="100" y="110" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">IRAUÇUBA</text>
+  <text x="100" y="165" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Prefeitura Municipal</text>
+</svg>

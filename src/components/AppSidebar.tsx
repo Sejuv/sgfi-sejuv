@@ -13,6 +13,7 @@ import {
 import { FileText, ChartPie, ChartBar, Building, ClockCounterClockwise, CheckCircle, Database, CloudArrowDown, Users, Cloud, ClipboardText, ChartLineUp, SignOut } from "@phosphor-icons/react"
 import { canView } from "@/lib/permissions"
 import type { Usuario } from "@/lib/types"
+import { useConfigSistema } from "@/components/ConfiguracoesSistema"
 
 interface AppSidebarProps {
   abaAtiva: string
@@ -27,6 +28,8 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ abaAtiva, onAbaChange, estatisticas, usuario, onLogout }: AppSidebarProps) {
+  const config = useConfigSistema()
+  
   const menuItems = [
     {
       title: "Processos",
@@ -94,15 +97,13 @@ export function AppSidebar({ abaAtiva, onAbaChange, estatisticas, usuario, onLog
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <Building className="h-6 w-6 text-primary-foreground" weight="bold" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">jDespesas</h2>
-            <p className="text-xs text-muted-foreground">Prefeitura de Irauçuba</p>
-          </div>
+      <SidebarHeader className="border-b px-4 py-3">
+        <div className="flex items-center justify-center w-full h-20">
+          <img 
+            src={config.logoTopo || "/logo.svg"}
+            alt="Logo do Sistema" 
+            className="w-full h-full object-contain"
+          />
         </div>
       </SidebarHeader>
       

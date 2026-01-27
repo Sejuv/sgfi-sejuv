@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { LockKey, EnvelopeSimple, Buildings, Info, Moon, Sun } from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { useEffect } from "react"
+import { useConfigSistema } from "@/components/ConfiguracoesSistema"
 
 interface LoginProps {
   onLogin: (email: string, senha: string) => Promise<boolean>
@@ -26,6 +27,7 @@ export function Login({ onLogin, erro, usuarios, onAtualizarUsuario }: LoginProp
   const [emailRecuperacao, setEmailRecuperacao] = useState("")
   const [novaSenha, setNovaSenha] = useState("")
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState("")
+  const config = useConfigSistema()
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('darkMode')
@@ -98,7 +100,19 @@ export function Login({ onLogin, erro, usuarios, onAtualizarUsuario }: LoginProp
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-accent/10 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-accent/10 p-4 relative overflow-hidden">
+      {/* Imagem de fundo como marca d'água */}
+      {config.imagemLogin && (
+        <div 
+          className="absolute inset-0 bg-center bg-no-repeat bg-cover opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: `url(${config.imagemLogin})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+      )}
+      
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
       
       <Button

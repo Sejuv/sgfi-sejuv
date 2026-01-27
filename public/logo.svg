@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
+  <!-- Brasão -->
+  <g transform="translate(40, 20)">
+    <!-- Escudo externo azul -->
+    <path d="M 40 0 L 60 0 Q 70 5, 75 15 L 75 60 Q 70 75, 50 85 Q 30 75, 25 60 L 25 15 Q 30 5, 40 0 Z" 
+          fill="#1e3a8a" stroke="#fbbf24" stroke-width="2"/>
+    
+    <!-- Elementos internos do brasão -->
+    <rect x="35" y="20" width="30" height="25" fill="#16a34a" opacity="0.8"/>
+    <circle cx="50" cy="55" r="8" fill="#fbbf24"/>
+    <path d="M 35 70 L 50 60 L 65 70" stroke="#fbbf24" stroke-width="2" fill="none"/>
+    
+    <!-- Detalhes decorativos -->
+    <circle cx="42" cy="28" r="2" fill="#fbbf24"/>
+    <circle cx="58" cy="28" r="2" fill="#fbbf24"/>
+    <rect x="48" y="35" width="4" height="8" fill="#fbbf24"/>
+  </g>
+  
+  <!-- Texto "Prefeitura de" -->
+  <text x="140" y="50" font-family="Arial, sans-serif" font-size="24" font-weight="300" fill="#1e3a8a">
+    Prefeitura de
+  </text>
+  
+  <!-- Texto "Irauçuba" -->
+  <text x="140" y="95" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#1e3a8a">
+    Irauçuba
+  </text>
+  
+  <!-- Linha decorativa -->
+  <line x1="140" y1="110" x2="400" y2="110" stroke="#16a34a" stroke-width="3"/>
+  
+  <!-- Subtítulo -->
+  <text x="140" y="140" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#64748b">
+    Estado do Ceará
+  </text>
+</svg>
