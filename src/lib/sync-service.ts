@@ -21,13 +21,13 @@ export interface SyncStatus {
 
 const SYNC_VERSION = "1.0.0"
 const SYNC_KEYS = {
-  PROCESSOS: "processos-despesas",
-  SECRETARIAS: "cadastro-secretarias",
-  SETORES: "cadastro-setores",
-  CONTAS: "cadastro-contas",
-  CREDORES: "cadastro-credores",
-  OBJETOS: "cadastro-objetos",
-  RECURSOS: "cadastro-recursos",
+  PROCESSOS: "processos",
+  SECRETARIAS: "secretarias",
+  SETORES: "setores",
+  CONTAS: "contas",
+  CREDORES: "credores",
+  OBJETOS: "objetos",
+  RECURSOS: "recursos",
   LAST_SYNC: "sync-last-timestamp",
   STATUS: "sync-status"
 }

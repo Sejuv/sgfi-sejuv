@@ -42,10 +42,19 @@ export function PainelLogs() {
 
   useEffect(() => {
     carregarLogs()
+    
+    // Recarregar logs a cada 2 segundos
+    const interval = setInterval(() => {
+      carregarLogs()
+    }, 2000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const carregarLogs = () => {
     const logsCarregados = logService.getLogs()
+    console.log('📊 Total de logs no localStorage:', logsCarregados.length)
+    console.log('📊 Últimos 3 logs:', logsCarregados.slice(-3))
     setLogs(logsCarregados)
   }
 
@@ -152,7 +161,9 @@ export function PainelLogs() {
       visualizar: "bg-purple-500",
       importar: "bg-cyan-500",
       exportar: "bg-orange-500",
-      acesso: "bg-indigo-500"
+      acesso: "bg-indigo-500",
+      devolver: "bg-orange-600",
+      receber: "bg-green-600"
     }
     
     return (

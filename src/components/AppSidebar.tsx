@@ -10,7 +10,9 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar"
-import { FileText, ChartPie, ChartBar, Building, ClockCounterClockwise, CheckCircle, Database, CloudArrowDown, Users, Cloud, ClipboardText } from "@phosphor-icons/react"
+import { FileText, ChartPie, ChartBar, Building, ClockCounterClockwise, CheckCircle, Database, CloudArrowDown, Users, Cloud, ClipboardText, ChartLineUp } from "@phosphor-icons/react"
+import { canView } from "@/lib/permissions"
+import type { Usuario } from "@/lib/types"
 
 interface AppSidebarProps {
   abaAtiva: string
@@ -20,51 +22,74 @@ interface AppSidebarProps {
     pendentes: number
     quantidade: number
   }
+  usuario?: Usuario | null
 }
 
-export function AppSidebar({ abaAtiva, onAbaChange, estatisticas }: AppSidebarProps) {
+export function AppSidebar({ abaAtiva, onAbaChange, estatisticas, usuario }: AppSidebarProps) {
   const menuItems = [
     {
       title: "Processos",
       icon: FileText,
       value: "processos",
+      modulo: "processos" as const,
+    },
+    {
+      title: "Previsões",
+      icon: ChartLineUp,
+      value: "previsoes",
+      modulo: "previsoes" as const,
     },
     {
       title: "Métricas",
       icon: ChartPie,
       value: "metricas",
+      modulo: "metricas" as const,
     },
     {
       title: "Resumo Financeiro",
       icon: ChartBar,
       value: "resumo",
+      modulo: "resumo" as const,
     },
     {
       title: "Cadastros",
       icon: Database,
       value: "cadastros",
+      modulo: "cadastros" as const,
     },
     {
       title: "Usuários",
       icon: Users,
       value: "usuarios",
+      modulo: "usuarios" as const,
     },
     {
       title: "Logs",
       icon: ClipboardText,
       value: "logs",
+      modulo: null, // Logs sempre visíveis
     },
     {
       title: "Sincronização",
       icon: CloudArrowDown,
       value: "sincronizacao",
+      modulo: "sincronizacao" as const,
     },
     {
       title: "Firebase / Deploy",
       icon: Cloud,
       value: "firebase",
+      modulo: "sincronizacao" as const, // Usa mesma permissão de sincronização
     },
   ]
+
+  // Filtrar itens baseado em permissões
+  // Se não há usuário logado, mostrar todos (modo desenvolvimento)
+  const menuItemsFiltrados = menuItems.filter((item) => {
+    if (!usuario) return true // Mostrar tudo se não tiver usuário
+    if (!item.modulo) return true // Sempre mostrar logs
+    return canView(usuario, item.modulo)
+  })
 
   return (
     <Sidebar>
@@ -85,7 +110,7 @@ export function AppSidebar({ abaAtiva, onAbaChange, estatisticas }: AppSidebarPr
           <SidebarGroupLabel>Navegação</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {menuItemsFiltrados.map((item) => (
                 <SidebarMenuItem key={item.value}>
                   <SidebarMenuButton
                     onClick={() => onAbaChange(item.value)}

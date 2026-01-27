@@ -16,6 +16,15 @@ export interface ProcessoDespesa {
   dataCompras?: string
   dataSefin?: string
   dataTesouraria?: string
+  // Campos de devolução
+  devolvido?: boolean
+  motivoDevolucao?: string
+  secretariaDevolucao?: string
+  dataDevolucao?: string
+  usuarioDevolucao?: string
+  recebidoNovamente?: boolean
+  dataRecebimento?: string
+  usuarioRecebimento?: string
 }
 
 export interface ResumoFinanceiro {
@@ -34,13 +43,7 @@ export type PermissaoModulo =
   | "cadastros"
   | "sincronizacao"
   | "usuarios"
-
-export type NivelAcesso = "leitura" | "escrita" | "admin"
-
-export interface Permissao {
-  modulo: PermissaoModulo
-  nivel: NivelAcesso
-}
+  | "previsoes"
 
 export interface Usuario {
   id: string
@@ -60,4 +63,5 @@ export interface SessaoUsuario {
   nome: string
   permissoes: Permissao[]
   dataLogin: string
+  usuario?: Usuario
 }

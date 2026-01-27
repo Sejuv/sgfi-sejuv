@@ -21,6 +21,7 @@ interface UsuarioFormProps {
 const MODULOS: { value: PermissaoModulo; label: string }[] = [
   { value: "processos", label: "Processos" },
   { value: "metricas", label: "Métricas" },
+  { value: "previsoes", label: "Previsões" },
   { value: "resumo", label: "Resumo Financeiro" },
   { value: "cadastros", label: "Cadastros" },
   { value: "sincronizacao", label: "Sincronização" },

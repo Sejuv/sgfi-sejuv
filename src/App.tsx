@@ -2,10 +2,13 @@ import { useState, useMemo, useEffect } from "react"
 import { useFirebaseKV } from "@/hooks/useFirebaseKV"
 import { useRealtimeSync } from "@/hooks/useRealtimeSync"
 import { ProcessoDespesa, Usuario, SessaoUsuario } from "@/lib/types"
+import { Secretaria } from "@/lib/cadastros-types"
 import { validarCredenciais, criarSessao, criarUsuarioInicial } from "@/lib/auth-service"
+import { canView, canEdit } from "@/lib/permissions"
 import { Login } from "@/components/Login"
 import { ProcessoForm } from "@/components/ProcessoForm"
 import { WorkflowDialog } from "@/components/WorkflowDialog"
+import { DevolucaoDialog } from "@/components/DevolucaoDialog"
 import { ImportProcessosDialog } from "@/components/ImportProcessosDialog"
 import { FiltrosPanel, Filtros } from "@/components/FiltrosPanel"
 import { ProcessosTable } from "@/components/ProcessosTable"
@@ -14,6 +17,7 @@ import { PainelMetricas } from "@/components/PainelMetricas"
 import { PainelCadastros } from "@/components/PainelCadastros"
 import { PainelUsuarios } from "@/components/PainelUsuarios"
 import { PainelLogs } from "@/components/PainelLogs"
+import { PainelPrevisoes } from "@/components/PainelPrevisoes"
 import { SyncPanel } from "@/components/SyncPanel"
 import { MigracaoFirebase } from "@/components/MigracaoFirebase"
 import { AppSidebar } from "@/components/AppSidebar"
@@ -32,12 +36,15 @@ function App() {
   const [processos, setProcessos] = useFirebaseKV<ProcessoDespesa[]>("processos-despesas", [])
   const [usuarios, setUsuarios] = useFirebaseKV<Usuario[]>("usuarios", [])
   const [sessao, setSessao] = useFirebaseKV<SessaoUsuario | null>("sessao-atual", null)
+  const [secretarias] = useFirebaseKV<any[]>("cadastro-secretarias", [])
   const [erroLogin, setErroLogin] = useState<string>("")
   const [formOpen, setFormOpen] = useState(false)
   const [workflowOpen, setWorkflowOpen] = useState(false)
+  const [devolucaoOpen, setDevolucaoOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [processoEditando, setProcessoEditando] = useState<ProcessoDespesa | undefined>()
   const [processoWorkflow, setProcessoWorkflow] = useState<ProcessoDespesa | undefined>()
+  const [processoDevolucao, setProcessoDevolucao] = useState<ProcessoDespesa | undefined>()
   const [filtros, setFiltros] = useState<Filtros>({ apenaspendentes: false })
   const [abaAtiva, setAbaAtiva] = useState("processos")
 
@@ -179,6 +186,10 @@ function App() {
   }
 
   const handleDeleteProcesso = (id: string) => {
+    if (!canEdit(sessao?.usuario || null, "processos")) {
+      toast.error("Você não tem permissão para excluir processos")
+      return
+    }
     const processo = processosArray.find(p => p.id === id)
     
     setProcessos((current) => (current || []).filter((p) => p.id !== id))
@@ -198,12 +209,91 @@ function App() {
     toast.success("Processo excluído com sucesso")
   }
 
+  const handleDevolverProcesso = (processo: ProcessoDespesa) => {
+    if (!canEdit(sessao?.usuario || null, "processos")) {
+      toast.error("Você não tem permissão para devolver processos")
+      return
+    }
+    setProcessoDevolucao(processo)
+    setDevolucaoOpen(true)
+  }
+
+  const handleConfirmarDevolucao = (processoId: string, motivo: string, secretaria: string, data: string) => {
+    setProcessos((current) =>
+      (current || []).map((p) =>
+        p.id === processoId
+          ? {
+              ...p,
+              devolvido: true,
+              motivoDevolucao: motivo,
+              secretariaDevolucao: secretaria,
+              dataDevolucao: data,
+              usuarioDevolucao: sessao?.nome || 'Usuário',
+              recebidoNovamente: false
+            }
+          : p
+      )
+    )
+
+    // Registrar log
+    if (sessao) {
+      const processo = processosArray.find(p => p.id === processoId)
+      logService.registrarLog(
+        sessao.usuarioId,
+        sessao.nome,
+        sessao.email,
+        'devolver',
+        'Processos',
+        `Processo ${processo?.nf || 'S/N'} devolvido para ${secretaria}: ${motivo}`
+      )
+    }
+
+    toast.success(`Processo devolvido para ${secretaria}`)
+  }
+
+  const handleReceberProcesso = (processo: ProcessoDespesa) => {
+    setProcessos((current) =>
+      (current || []).map((p) =>
+        p.id === processo.id
+          ? {
+              ...p,
+              recebidoNovamente: true,
+              dataRecebimento: new Date().toISOString(),
+              usuarioRecebimento: sessao?.nome || 'Usuário'
+            }
+          : p
+      )
+    )
+
+    // Registrar log
+    if (sessao) {
+      logService.registrarLog(
+        sessao.usuarioId,
+        sessao.nome,
+        sessao.email,
+        'receber',
+        'Processos',
+        `Processo ${processo.nf || 'S/N'} recebido novamente após devolução`
+      )
+    }
+
+    toast.success("Processo recebido novamente")
+  }
+
   const handleEditProcesso = (processo: ProcessoDespesa) => {
+    if (!canEdit(sessao?.usuario || null, "processos")) {
+      toast.error("Você não tem permissão para editar processos")
+      return
+    }
     setProcessoEditando(processo)
     setFormOpen(true)
   }
 
   const handleNovoProcesso = () => {
+    if (!canEdit(sessao?.usuario || null, "processos")) {
+      toast.error("Você não tem permissão para criar processos")
+      return
+    }
     setProcessoEditando(undefined)
     setFormOpen(true)
   }
@@ -233,7 +323,7 @@ function App() {
     <SidebarProvider>
       <Toaster richColors position="top-right" />
       
-      <AppSidebar abaAtiva={abaAtiva} onAbaChange={setAbaAtiva} estatisticas={estatisticas} />
+      <AppSidebar abaAtiva={abaAtiva} onAbaChange={setAbaAtiva} estatisticas={estatisticas} usuario={sessao?.usuario || null} />
       
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
@@ -248,16 +338,20 @@ function App() {
                 {sessao.nome} - {sessao.email}
               </p>
             </div>
-            {abaAtiva === "processos" && (
+            {abaAtiva === "processos" && canView(sessao?.usuario || null, "processos") && (
               <div className="flex gap-2">
-                <Button onClick={() => setImportOpen(true)} variant="outline" size="default" className="gap-2">
-                  <FileArrowUp className="h-4 w-4" weight="bold" />
-                  Importar
-                </Button>
-                <Button onClick={handleNovoProcesso} size="default" className="gap-2">
-                  <Plus className="h-4 w-4" weight="bold" />
-                  Novo Processo
-                </Button>
+                {canEdit(sessao?.usuario || null, "processos") && (
+                  <>
+                    <Button onClick={() => setImportOpen(true)} variant="outline" size="default" className="gap-2">
+                      <FileArrowUp className="h-4 w-4" weight="bold" />
+                      Importar
+                    </Button>
+                    <Button onClick={handleNovoProcesso} size="default" className="gap-2">
+                      <Plus className="h-4 w-4" weight="bold" />
+                      Novo Processo
+                    </Button>
+                  </>
+                )}
               </div>
             )}
             <Button onClick={handleLogout} variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
@@ -311,11 +405,18 @@ function App() {
                 onEdit={handleEditProcesso}
                 onDelete={handleDeleteProcesso}
                 onWorkflow={handleWorkflow}
+                onDevolucao={handleDevolverProcesso}
+                onReceber={handleReceberProcesso}
+                usuario={sessao?.usuario || null}
               />
             )}
 
             {abaAtiva === "metricas" && (
               <PainelMetricas processos={processosFiltrados} />
+            )}
+
+            {abaAtiva === "previsoes" && (
+              <PainelPrevisoes processos={processos} />
             )}
 
             {abaAtiva === "resumo" && (
@@ -367,6 +468,14 @@ function App() {
             onSave={handleSaveWorkflow}
           />
         )}
+
+        <DevolucaoDialog
+          processo={processoDevolucao}
+          open={devolucaoOpen}
+          onOpenChange={setDevolucaoOpen}
+          onDevolucao={handleConfirmarDevolucao}
+          secretarias={secretarias.map(s => s.nome)}
+        />
       </SidebarInset>
     </SidebarProvider>
   )

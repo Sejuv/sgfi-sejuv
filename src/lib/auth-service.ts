@@ -56,6 +56,7 @@ export function criarSessao(usuario: Usuario): SessaoUsuario {
     nome: usuario.nome,
     permissoes: usuario.permissoes,
     dataLogin: new Date().toISOString(),
+    usuario: usuario
   }
 }
 

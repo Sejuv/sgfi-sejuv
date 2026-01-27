@@ -21,6 +21,8 @@ export type TipoAcao =
   | 'importar'
   | 'exportar'
   | 'acesso'
+  | 'devolver'
+  | 'receber'
 
 export type TipoTela =
   | 'Processos'

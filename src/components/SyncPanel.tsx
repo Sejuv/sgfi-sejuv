@@ -9,23 +9,12 @@ import {
   CloudArrowUp,
   DownloadSimple,
   UploadSimple,
-  Trash,
   Database,
   Clock,
   CheckCircle,
   WarningCircle
 } from "@phosphor-icons/react"
 import { formatCurrency } from "@/lib/utils"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 
 interface DataStats {
   totalProcessos: number
@@ -43,7 +32,6 @@ export function SyncPanel() {
   const [isLoading, setIsLoading] = useState(false)
   const [lastSync, setLastSync] = useState<number | null>(null)
   const [stats, setStats] = useState<DataStats | null>(null)
-  const [showClearDialog, setShowClearDialog] = useState(false)
 
   useEffect(() => {
     loadSyncInfo()
@@ -96,21 +84,6 @@ export function SyncPanel() {
     }
 
     input.click()
-  }
-
-  const handleClearData = async () => {
-    setIsLoading(true)
-    try {
-      await SyncService.clearAllData()
-      toast.success("Todos os dados foram removidos")
-      await loadSyncInfo()
-      setShowClearDialog(false)
-      window.location.reload()
-    } catch (error) {
-      toast.error("Erro ao limpar dados")
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   const formatLastSync = (timestamp: number | null) => {
@@ -255,32 +228,6 @@ export function SyncPanel() {
         </Card>
       </div>
 
-      <Card className="p-6 border-destructive/20 bg-destructive/5">
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-destructive/10 rounded-lg">
-              <Trash className="h-6 w-6 text-destructive" weight="bold" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-destructive">Zona de Perigo</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Remova permanentemente todos os dados do sistema. Esta ação não pode ser desfeita.
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={() => setShowClearDialog(true)}
-            disabled={isLoading}
-            variant="destructive"
-            className="gap-2"
-            size="lg"
-          >
-            <Trash className="h-5 w-5" weight="bold" />
-            Limpar Todos os Dados
-          </Button>
-        </div>
-      </Card>
-
       <Card className="p-6 bg-muted/30">
         <h3 className="text-lg font-semibold mb-4">Estatísticas do Sistema</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -310,43 +257,6 @@ export function SyncPanel() {
           </div>
         </div>
       </Card>
-
-      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <WarningCircle className="h-6 w-6" weight="bold" />
-              Confirmar Exclusão de Dados
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                Você está prestes a <strong>remover permanentemente</strong> todos os dados do sistema, incluindo:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>{stats?.totalProcessos || 0} processos de despesa</li>
-                <li>{stats?.totalSecretarias || 0} secretarias</li>
-                <li>{stats?.totalSetores || 0} setores</li>
-                <li>{stats?.totalCredores || 0} credores</li>
-                <li>{stats?.totalObjetos || 0} objetos</li>
-                <li>{stats?.totalContas || 0} contas</li>
-                <li>{stats?.totalRecursos || 0} recursos</li>
-              </ul>
-              <p className="font-semibold text-destructive mt-4">
-                Esta ação não pode ser desfeita! Certifique-se de ter feito um backup antes de continuar.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleClearData}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Sim, Limpar Todos os Dados
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
