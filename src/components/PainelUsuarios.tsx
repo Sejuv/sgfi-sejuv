@@ -6,6 +6,7 @@ import { UsuariosTable } from "@/components/UsuariosTable"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { MagnifyingGlass, User, CheckCircle, XCircle, ShieldCheck, Plus } from "@phosphor-icons/react"
@@ -17,6 +18,8 @@ export function PainelUsuarios() {
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | undefined>()
   const [busca, setBusca] = useState("")
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativo" | "inativo">("todos")
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [usuarioToDelete, setUsuarioToDelete] = useState<Usuario | null>(null)
 
   const usuariosArray = usuarios || []
 
@@ -66,8 +69,20 @@ export function PainelUsuarios() {
   }
 
   const handleDeleteUsuario = (id: string) => {
-    setUsuarios((current) => (current || []).filter((u) => u.id !== id))
-    toast.success("Usuário excluído com sucesso")
+    const usuario = usuariosArray.find(u => u.id === id)
+    if (usuario) {
+      setUsuarioToDelete(usuario)
+      setConfirmDeleteOpen(true)
+    }
+  }
+
+  const handleConfirmDelete = () => {
+    if (usuarioToDelete) {
+      setUsuarios((current) => (current || []).filter((u) => u.id !== usuarioToDelete.id))
+      toast.success("Usuário excluído com sucesso")
+      setConfirmDeleteOpen(false)
+      setUsuarioToDelete(null)
+    }
   }
 
   const handleEditUsuario = (usuario: Usuario) => {
@@ -197,6 +212,25 @@ export function PainelUsuarios() {
         usuario={usuarioEditando}
         onSave={handleSaveUsuario}
       />
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o usuário <strong>{usuarioToDelete?.nome}</strong>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

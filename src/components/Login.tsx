@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { LockKey, EnvelopeSimple, Buildings, Info } from "@phosphor-icons/react"
+import { LockKey, EnvelopeSimple, Buildings, Info, Moon, Sun } from "@phosphor-icons/react"
 import { toast } from "sonner"
+import { useEffect } from "react"
 
 interface LoginProps {
   onLogin: (email: string, senha: string) => Promise<boolean>
@@ -25,6 +26,26 @@ export function Login({ onLogin, erro, usuarios, onAtualizarUsuario }: LoginProp
   const [emailRecuperacao, setEmailRecuperacao] = useState("")
   const [novaSenha, setNovaSenha] = useState("")
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState("")
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode')
+      return saved === 'true'
+    }
+    return false
+  })
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    localStorage.setItem('darkMode', darkMode.toString())
+  }, [darkMode])
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,13 +100,24 @@ export function Login({ onLogin, erro, usuarios, onAtualizarUsuario }: LoginProp
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-accent/10 p-4">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
+      
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute top-4 right-4 z-20 rounded-full shadow-lg"
+        onClick={toggleDarkMode}
+        title={darkMode ? "Modo claro" : "Modo escuro"}
+      >
+        {darkMode ? <Sun size={20} weight="duotone" /> : <Moon size={20} weight="duotone" />}
+      </Button>
+
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/80 mb-4 shadow-lg">
             <Buildings className="w-10 h-10 text-primary-foreground" weight="bold" />
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Sistema de Gestão
+            Sistema de Gestão de Despesas
           </h1>
           <p className="text-muted-foreground text-lg">Prefeitura de Irauçuba</p>
         </div>

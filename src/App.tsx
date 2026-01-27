@@ -21,11 +21,13 @@ import { PainelPrevisoes } from "@/components/PainelPrevisoes"
 import { SyncPanel } from "@/components/SyncPanel"
 import { MigracaoFirebase } from "@/components/MigracaoFirebase"
 import { AppSidebar } from "@/components/AppSidebar"
+import { Footer } from "@/components/Footer"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
-import { Plus, FileArrowUp, SignOut } from "@phosphor-icons/react"
+import { Plus, FileArrowUp, SignOut, Moon, Sun } from "@phosphor-icons/react"
 import { toast, Toaster } from "sonner"
 import { logService } from "@/lib/log-service"
 
@@ -47,6 +49,28 @@ function App() {
   const [processoDevolucao, setProcessoDevolucao] = useState<ProcessoDespesa | undefined>()
   const [filtros, setFiltros] = useState<Filtros>({ apenaspendentes: false })
   const [abaAtiva, setAbaAtiva] = useState("processos")
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; nome?: string } | null>(null)
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode')
+      return saved === 'true'
+    }
+    return false
+  })
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    localStorage.setItem('darkMode', darkMode.toString())
+  }, [darkMode])
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode)
+  }
 
   const processosArray = processos || []
 
@@ -191,8 +215,16 @@ function App() {
       return
     }
     const processo = processosArray.find(p => p.id === id)
+    setItemToDelete({ id, nome: `Processo NF ${processo?.nf || 'S/N'}` })
+    setConfirmDeleteOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!itemToDelete) return
+
+    const processo = processosArray.find(p => p.id === itemToDelete.id)
     
-    setProcessos((current) => (current || []).filter((p) => p.id !== id))
+    setProcessos((current) => (current || []).filter((p) => p.id !== itemToDelete.id))
     
     // Registrar log
     if (sessao && processo) {
@@ -207,6 +239,8 @@ function App() {
     }
     
     toast.success("Processo excluído com sucesso")
+    setConfirmDeleteOpen(false)
+    setItemToDelete(null)
   }
 
   const handleDevolverProcesso = (processo: ProcessoDespesa) => {
@@ -323,7 +357,13 @@ function App() {
     <SidebarProvider>
       <Toaster richColors position="top-right" />
       
-      <AppSidebar abaAtiva={abaAtiva} onAbaChange={setAbaAtiva} estatisticas={estatisticas} usuario={sessao?.usuario || null} />
+      <AppSidebar 
+        abaAtiva={abaAtiva} 
+        onAbaChange={setAbaAtiva} 
+        estatisticas={estatisticas} 
+        usuario={sessao?.usuario || null}
+        onLogout={handleLogout}
+      />
       
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
@@ -332,12 +372,21 @@ function App() {
             <Separator orientation="vertical" className="h-6" />
             <div className="flex-1">
               <h1 className="text-base md:text-lg font-semibold text-primary">
-                Sistema de Gestão de Processos
+                Sistema de Gestão de Despesas
               </h1>
               <p className="text-xs text-muted-foreground hidden lg:block">
                 {sessao.nome} - {sessao.email}
               </p>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleDarkMode}
+              className="h-9 w-9"
+              title={darkMode ? "Modo claro" : "Modo escuro"}
+            >
+              {darkMode ? <Sun size={18} weight="duotone" /> : <Moon size={18} weight="duotone" />}
+            </Button>
             {abaAtiva === "processos" && canView(sessao?.usuario || null, "processos") && (
               <div className="flex gap-2">
                 {canEdit(sessao?.usuario || null, "processos") && (
@@ -354,9 +403,7 @@ function App() {
                 )}
               </div>
             )}
-            <Button onClick={handleLogout} variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
-              <SignOut className="h-5 w-5" weight="bold" />
-            </Button>
+
           </div>
         </header>
 
@@ -476,6 +523,27 @@ function App() {
           onDevolucao={handleConfirmarDevolucao}
           secretarias={secretarias.map(s => s.nome)}
         />
+
+        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir <strong>{itemToDelete?.nome}</strong>?
+                <br />
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <Footer />
       </SidebarInset>
     </SidebarProvider>
   )

@@ -238,7 +238,7 @@ export function ResumoFinanceiro({ processos }: ResumoFinanceiroProps) {
       </head>
       <body>
         <div class="header">
-          <h1>Sistema de Gestão de Processos - Prefeitura de Irauçuba</h1>
+          <h1>Sistema de Gestão de Despesas - Prefeitura de Irauçuba</h1>
           <div class="info">Relatório de Processos Filtrados</div>
           <div class="info">Data de Geração: ${new Date().toLocaleString("pt-BR")}</div>
           <div class="info">Total de Processos: ${processosFiltrados.length}</div>

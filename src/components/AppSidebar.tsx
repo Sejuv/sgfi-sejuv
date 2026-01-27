@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar"
-import { FileText, ChartPie, ChartBar, Building, ClockCounterClockwise, CheckCircle, Database, CloudArrowDown, Users, Cloud, ClipboardText, ChartLineUp } from "@phosphor-icons/react"
+import { FileText, ChartPie, ChartBar, Building, ClockCounterClockwise, CheckCircle, Database, CloudArrowDown, Users, Cloud, ClipboardText, ChartLineUp, SignOut } from "@phosphor-icons/react"
 import { canView } from "@/lib/permissions"
 import type { Usuario } from "@/lib/types"
 
@@ -23,9 +23,10 @@ interface AppSidebarProps {
     quantidade: number
   }
   usuario?: Usuario | null
+  onLogout: () => void
 }
 
-export function AppSidebar({ abaAtiva, onAbaChange, estatisticas, usuario }: AppSidebarProps) {
+export function AppSidebar({ abaAtiva, onAbaChange, estatisticas, usuario, onLogout }: AppSidebarProps) {
   const menuItems = [
     {
       title: "Processos",
@@ -99,8 +100,8 @@ export function AppSidebar({ abaAtiva, onAbaChange, estatisticas, usuario }: App
             <Building className="h-6 w-6 text-primary-foreground" weight="bold" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Gestão de Processos</h2>
-            <p className="text-xs text-muted-foreground">Irauçuba</p>
+            <h2 className="text-sm font-semibold text-foreground">jDespesas</h2>
+            <p className="text-xs text-muted-foreground">Prefeitura de Irauçuba</p>
           </div>
         </div>
       </SidebarHeader>
@@ -159,8 +160,15 @@ export function AppSidebar({ abaAtiva, onAbaChange, estatisticas, usuario }: App
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
-        <div className="text-xs text-muted-foreground">
-          <p className="font-medium">Prefeitura de Irauçuba</p>
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <SignOut className="h-4 w-4" weight="duotone" />
+          <span>Sair</span>
+        </button>
+        <div className="text-xs text-muted-foreground mt-3">
+          <p className="font-medium">Secretaria de Finanças</p>
           <p className="mt-1">Sistema Municipal</p>
         </div>
       </SidebarFooter>

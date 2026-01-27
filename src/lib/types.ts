@@ -36,7 +36,7 @@ export interface ResumoFinanceiro {
   totalGeral: number
 }
 
-export type PermissaoModulo = 
+export type PermissaoModulo =
   | "processos"
   | "metricas"
   | "resumo"
@@ -44,6 +44,13 @@ export type PermissaoModulo =
   | "sincronizacao"
   | "usuarios"
   | "previsoes"
+
+export type NivelAcesso = "leitura" | "escrita" | "admin"
+
+export interface Permissao {
+  modulo: PermissaoModulo
+  nivel: NivelAcesso
+}
 
 export interface Usuario {
   id: string

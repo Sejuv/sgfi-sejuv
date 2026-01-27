@@ -350,7 +350,7 @@ export function printProcessos(processos: ProcessoDespesa[]) {
     </head>
     <body>
       <div class="header">
-        <h1>Sistema de Gestão de Processos - Prefeitura de Irauçuba</h1>
+        <h1>Sistema de Gestão de Despesas - Prefeitura de Irauçuba</h1>
         <div class="info">Relatório de Processos</div>
         <div class="info">Data de Geração: ${new Date().toLocaleString("pt-BR")}</div>
         <div class="info">Total de Processos: ${processos.length}</div>
@@ -521,7 +521,7 @@ export function printResumoFinanceiro(processos: ProcessoDespesa[]) {
     </head>
     <body>
       <div class="header">
-        <h1>Sistema de Gestão de Processos - Prefeitura de Irauçuba</h1>
+        <h1>Sistema de Gestão de Despesas - Prefeitura de Irauçuba</h1>
         <div class="info">Resumo Financeiro por Credor e Objeto</div>
         <div class="info">Data de Geração: ${new Date().toLocaleString("pt-BR")}</div>
         <div class="info">Total de Processos: ${processos.length}</div>
@@ -661,7 +661,7 @@ export function printMetricas(processos: ProcessoDespesa[]) {
     </head>
     <body>
       <div class="header">
-        <h1>Sistema de Gestão de Processos - Prefeitura de Irauçuba</h1>
+        <h1>Sistema de Gestão de Despesas - Prefeitura de Irauçuba</h1>
         <div class="info">Métricas e Relatórios</div>
         <div class="info">Data de Geração: ${new Date().toLocaleString("pt-BR")}</div>
       </div>
@@ -899,7 +899,7 @@ export function exportResumoFinanceiroPDF(
     </head>
     <body>
       <div class="header">
-        <h1>Sistema de Gestão de Processos</h1>
+        <h1>Sistema de Gestão de Despesas</h1>
         <div class="info">Prefeitura Municipal de Irauçuba - CE</div>
         <div class="info">Resumo Financeiro por ${nomes.principal}</div>
         <div class="info">Gerado em: ${new Date().toLocaleString("pt-BR")}</div>

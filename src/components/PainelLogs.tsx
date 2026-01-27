@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { 
   Table, 
   TableBody, 
@@ -39,6 +40,7 @@ export function PainelLogs() {
   const [filtroUsuario, setFiltroUsuario] = useState<string>("todos")
   const [dataInicio, setDataInicio] = useState("")
   const [dataFim, setDataFim] = useState("")
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   useEffect(() => {
     carregarLogs()
@@ -123,11 +125,14 @@ export function PainelLogs() {
   }, [logs])
 
   const handleLimparLogs = () => {
-    if (window.confirm('Tem certeza que deseja limpar todos os logs? Esta ação não pode ser desfeita.')) {
-      logService.limparLogs()
-      setLogs([])
-      toast.success("Logs limpos com sucesso")
-    }
+    setConfirmDeleteOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    logService.limparLogs()
+    setLogs([])
+    toast.success("Logs limpos com sucesso")
+    setConfirmDeleteOpen(false)
   }
 
   const handleExportarLogs = () => {
@@ -353,6 +358,25 @@ export function PainelLogs() {
           </Table>
         </div>
       </Card>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Limpeza de Logs</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja limpar <strong>todos os logs</strong>?
+              <br />
+              Esta ação não pode ser desfeita e todos os registros serão permanentemente excluídos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Limpar Todos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
