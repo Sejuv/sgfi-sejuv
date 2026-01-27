@@ -19,8 +19,10 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
   const [value, setValue] = useState<T>(() => {
     // Tenta usar o cache primeiro
     if (globalCache.has(key)) {
+      console.log(`💾 useFirebaseKV: Inicializando "${key}" com cache`, globalCache.get(key))
       return globalCache.get(key)
     }
+    console.log(`💾 useFirebaseKV: Inicializando "${key}" com defaultValue`, defaultValue)
     return defaultValue
   })
   
@@ -115,32 +117,35 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
 
   // Salva no Firebase imediatamente
   const updateValue = useCallback((newValue: T | ((prev: T) => T)) => {
-    const resolvedValue = typeof newValue === 'function' 
-      ? (newValue as (prev: T) => T)(value)
-      : newValue
-    
-    console.log(`💾 Salvando dados em "${key}":`, resolvedValue)
-    setValue(resolvedValue)
-    globalCache.set(key, resolvedValue)
-    
-    // Marca que estamos salvando essa key
-    savingKeys.add(key)
-    
-    // Salva imediatamente no Firebase
-    saveToFirestore(key, resolvedValue)
-      .then(() => {
-        console.log(`✅ Dados salvos com sucesso no Firebase em "${key}"`)
-        // Aguarda um pouco antes de permitir atualizações do listener novamente
-        setTimeout(() => {
+    setValue((currentValue) => {
+      const resolvedValue = typeof newValue === 'function' 
+        ? (newValue as (prev: T) => T)(currentValue)
+        : newValue
+      
+      console.log(`💾 Salvando dados em "${key}":`, resolvedValue)
+      globalCache.set(key, resolvedValue)
+      
+      // Marca que estamos salvando essa key
+      savingKeys.add(key)
+      
+      // Salva imediatamente no Firebase
+      saveToFirestore(key, resolvedValue)
+        .then(() => {
+          console.log(`✅ Dados salvos com sucesso no Firebase em "${key}"`)
+          // Aguarda um pouco antes de permitir atualizações do listener novamente
+          setTimeout(() => {
+            savingKeys.delete(key)
+            console.log(`🔓 Liberando listener para "${key}"`)
+          }, 500)
+        })
+        .catch(error => {
+          console.error(`❌ Erro ao salvar em "${key}":`, error)
           savingKeys.delete(key)
-          console.log(`🔓 Liberando listener para "${key}"`)
-        }, 2000)
-      })
-      .catch(error => {
-        console.error(`❌ Erro ao salvar em "${key}":`, error)
-        savingKeys.delete(key)
-      })
-  }, [key, value])
+        })
+      
+      return resolvedValue
+    })
+  }, [key])
 
   return [value, updateValue]
 }

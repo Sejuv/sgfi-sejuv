@@ -52,17 +52,26 @@ export function PainelUsuarios() {
   }, [usuariosArray])
 
   const handleSaveUsuario = (usuarioData: Omit<Usuario, "id"> & { id?: string }) => {
+    console.log(`👤 handleSaveUsuario chamado:`, usuarioData)
     setUsuarios((current) => {
       const currentArray = current || []
+      console.log(`📊 Array atual de usuários (antes):`, currentArray)
+      
+      let resultado
       if (usuarioData.id) {
-        return currentArray.map((u) => (u.id === usuarioData.id ? (usuarioData as Usuario) : u))
+        resultado = currentArray.map((u) => (u.id === usuarioData.id ? (usuarioData as Usuario) : u))
+        console.log(`✏️ Editando usuário existente ID: ${usuarioData.id}`)
       } else {
         const novoUsuario: Usuario = {
           ...usuarioData,
           id: Date.now().toString(),
         }
-        return [...currentArray, novoUsuario]
+        resultado = [...currentArray, novoUsuario]
+        console.log(`➕ Adicionando novo usuário ID: ${novoUsuario.id}`)
       }
+      
+      console.log(`📊 Array de usuários (depois):`, resultado)
+      return resultado
     })
     toast.success(usuarioData.id ? "Usuário atualizado com sucesso" : "Usuário criado com sucesso")
     setUsuarioEditando(undefined)
