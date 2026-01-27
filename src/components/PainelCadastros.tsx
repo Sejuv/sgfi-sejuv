@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useKV } from "@/hooks/useKV"
+import { useFirebaseKV } from "@/hooks/useFirebaseKV"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

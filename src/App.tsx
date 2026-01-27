@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { useKV } from "@/hooks/useKV"
+import { useFirebaseKV } from "@/hooks/useFirebaseKV"
 import { ProcessoDespesa, Usuario, SessaoUsuario } from "@/lib/types"
 import { validarCredenciais, criarSessao, criarUsuarioInicial } from "@/lib/auth-service"
 import { Login } from "@/components/Login"
@@ -23,9 +23,9 @@ import { Plus, FileArrowUp, SignOut } from "@phosphor-icons/react"
 import { toast, Toaster } from "sonner"
 
 function App() {
-  const [processos, setProcessos] = useKV<ProcessoDespesa[]>("processos-despesas", [])
-  const [usuarios, setUsuarios] = useKV<Usuario[]>("usuarios", [])
-  const [sessao, setSessao] = useKV<SessaoUsuario | null>("sessao-atual", null)
+  const [processos, setProcessos] = useFirebaseKV<ProcessoDespesa[]>("processos-despesas", [])
+  const [usuarios, setUsuarios] = useFirebaseKV<Usuario[]>("usuarios", [])
+  const [sessao, setSessao] = useFirebaseKV<SessaoUsuario | null>("sessao-atual", null)
   const [erroLogin, setErroLogin] = useState<string>("")
   const [formOpen, setFormOpen] = useState(false)
   const [workflowOpen, setWorkflowOpen] = useState(false)
