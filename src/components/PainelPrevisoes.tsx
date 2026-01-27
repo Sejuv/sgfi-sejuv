@@ -11,6 +11,7 @@ import { ProcessoDespesa } from "@/lib/types"
 import { Credor } from "@/lib/cadastros-types"
 import { Recurso, Objeto, Secretaria } from "@/lib/cadastros-types"
 import { useFirebaseKV } from "@/hooks/useFirebaseKV"
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
 interface PainelPrevisoesProps {
   processos: ProcessoDespesa[]
@@ -448,6 +449,125 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Gráficos de Previsão */}
+        {previsoes.length > 0 && previsoes[0].historicoValores.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Visualização Gráfica das Previsões</CardTitle>
+              <CardDescription>
+                Análise visual do histórico e projeções futuras
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="tendencia" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="tendencia">Tendência</TabsTrigger>
+                  <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
+                  <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="tendencia" className="mt-6">
+                  <ResponsiveContainer width="100%" height={350}>
+                    <LineChart data={(() => {
+                      const dados = previsoes[0].historicoValores.map((valor, idx) => ({
+                        periodo: `P${idx + 1}`,
+                        real: valor,
+                      }))
+                      // Adiciona previsão como último ponto
+                      dados.push({
+                        periodo: `P${dados.length + 1} (Prev)`,
+                        real: previsoes[0].previsaoProximoPeriodo,
+                      })
+                      return dados
+                    })()}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="periodo" className="text-xs" />
+                      <YAxis className="text-xs" tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
+                      <Tooltip 
+                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
+                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                      />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="real" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={2}
+                        name="Despesa"
+                        dot={{ fill: 'hsl(var(--primary))' }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <p className="text-sm text-muted-foreground text-center mt-4">
+                    Linha de tendência mostrando valores históricos e previsão do próximo período
+                  </p>
+                </TabsContent>
+
+                <TabsContent value="comparativo" className="mt-6">
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={previsoes.map(prev => ({
+                      nome: prev.nome.length > 20 ? prev.nome.substring(0, 20) + '...' : prev.nome,
+                      'Média Histórica': prev.mediaHistorica,
+                      'Previsão': prev.previsaoProximoPeriodo,
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="nome" className="text-xs" />
+                      <YAxis className="text-xs" tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
+                      <Tooltip 
+                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`]}
+                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                      />
+                      <Legend />
+                      <Bar dataKey="Média Histórica" fill="hsl(var(--muted-foreground))" />
+                      <Bar dataKey="Previsão" fill="hsl(var(--primary))" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <p className="text-sm text-muted-foreground text-center mt-4">
+                    Comparação entre média histórica e previsão para o próximo período
+                  </p>
+                </TabsContent>
+
+                <TabsContent value="evolucao" className="mt-6">
+                  <ResponsiveContainer width="100%" height={350}>
+                    <AreaChart data={(() => {
+                      const dados = previsoes[0].historicoValores.map((valor, idx) => ({
+                        periodo: `P${idx + 1}`,
+                        valor: valor,
+                      }))
+                      // Adiciona previsão
+                      dados.push({
+                        periodo: `P${dados.length + 1} (Prev)`,
+                        valor: previsoes[0].previsaoProximoPeriodo,
+                      })
+                      return dados
+                    })()}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="periodo" className="text-xs" />
+                      <YAxis className="text-xs" tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
+                      <Tooltip 
+                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Despesa']}
+                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                      />
+                      <Legend />
+                      <Area 
+                        type="monotone" 
+                        dataKey="valor" 
+                        stroke="hsl(var(--primary))" 
+                        fill="hsl(var(--primary))" 
+                        fillOpacity={0.3}
+                        name="Evolução das Despesas"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  <p className="text-sm text-muted-foreground text-center mt-4">
+                    Evolução temporal das despesas com área preenchida
+                  </p>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabela de Previsões */}
         <Card>
