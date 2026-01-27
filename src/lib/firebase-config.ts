@@ -3,7 +3,7 @@ import { getFirestore } from 'firebase/firestore'
 
 // Configuração do Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyBRhNY4ooXIEJ-MtKz88k6HTiBalfn9uM",
+  apiKey: "AIzaSyBRhNY4ooXIEJ-MtKz88k6HTiBalfn9uMI",
   authDomain: "sistema-gestao-iraucuba.firebaseapp.com",
   projectId: "sistema-gestao-iraucuba",
   storageBucket: "sistema-gestao-iraucuba.firebasestorage.app",
