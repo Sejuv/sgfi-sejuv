@@ -56,7 +56,7 @@ export function ObjetoForm({ open, onOpenChange, objeto, onSave, objetosExistent
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{objeto ? "Editar Objeto" : "Novo Objeto"}</DialogTitle>
         </DialogHeader>

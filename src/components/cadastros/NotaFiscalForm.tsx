@@ -67,7 +67,7 @@ export function NotaFiscalForm({ open, onOpenChange, notaFiscal, onSave }: NotaF
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{notaFiscal ? "Editar Nota Fiscal" : "Nova Nota Fiscal"}</DialogTitle>
         </DialogHeader>

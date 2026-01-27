@@ -74,7 +74,7 @@ export function RecursoForm({ open, onOpenChange, recurso, onSave, recursosExist
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{recurso ? "Editar Recurso" : "Novo Recurso"}</DialogTitle>
         </DialogHeader>

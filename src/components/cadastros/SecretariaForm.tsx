@@ -70,7 +70,7 @@ export function SecretariaForm({ open, onOpenChange, secretaria, onSave, secreta
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{secretaria ? "Editar Secretaria" : "Nova Secretaria"}</DialogTitle>
         </DialogHeader>

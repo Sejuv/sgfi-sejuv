@@ -53,7 +53,7 @@ export function ContaForm({ open, onOpenChange, conta, onSave, contasExistentes 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{conta ? "Editar Conta" : "Nova Conta"}</DialogTitle>
         </DialogHeader>

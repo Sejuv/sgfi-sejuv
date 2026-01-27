@@ -59,7 +59,7 @@ export function SetorForm({ open, onOpenChange, setor, onSave, secretariaIdInici
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{setor ? "Editar Setor" : "Novo Setor"}</DialogTitle>
         </DialogHeader>
