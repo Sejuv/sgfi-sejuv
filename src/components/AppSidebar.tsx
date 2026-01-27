@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar"
-import { FileText, ChartPie, ChartBar, Building, ClockCounterClockwise, CheckCircle, Database, CloudArrowDown, Users, Cloud } from "@phosphor-icons/react"
+import { FileText, ChartPie, ChartBar, Building, ClockCounterClockwise, CheckCircle, Database, CloudArrowDown, Users, Cloud, ClipboardText } from "@phosphor-icons/react"
 
 interface AppSidebarProps {
   abaAtiva: string
@@ -48,6 +48,11 @@ export function AppSidebar({ abaAtiva, onAbaChange, estatisticas }: AppSidebarPr
       title: "Usuários",
       icon: Users,
       value: "usuarios",
+    },
+    {
+      title: "Logs",
+      icon: ClipboardText,
+      value: "logs",
     },
     {
       title: "Sincronização",

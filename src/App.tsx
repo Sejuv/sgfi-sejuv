@@ -12,6 +12,7 @@ import { ResumoFinanceiro } from "@/components/ResumoFinanceiro"
 import { PainelMetricas } from "@/components/PainelMetricas"
 import { PainelCadastros } from "@/components/PainelCadastros"
 import { PainelUsuarios } from "@/components/PainelUsuarios"
+import { PainelLogs } from "@/components/PainelLogs"
 import { SyncPanel } from "@/components/SyncPanel"
 import { MigracaoFirebase } from "@/components/MigracaoFirebase"
 import { AppSidebar } from "@/components/AppSidebar"
@@ -21,6 +22,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { Separator } from "@/components/ui/separator"
 import { Plus, FileArrowUp, SignOut } from "@phosphor-icons/react"
 import { toast, Toaster } from "sonner"
+import { logService } from "@/lib/log-service"
 
 function App() {
   const [processos, setProcessos] = useFirebaseKV<ProcessoDespesa[]>("processos-despesas", [])
@@ -86,6 +88,16 @@ function App() {
         )
       )
       
+      // Registrar log de login
+      logService.registrarLog(
+        usuario.id,
+        usuario.nome,
+        usuario.email,
+        'login',
+        'Login',
+        `Login realizado com sucesso`
+      )
+      
       setErroLogin("")
       toast.success(`Bem-vindo, ${usuario.nome}!`)
       return true
@@ -96,6 +108,16 @@ function App() {
   }
 
   const handleLogout = () => {
+    if (sessao) {
+      logService.registrarLog(
+        sessao.usuarioId,
+        sessao.nome,
+        sessao.email,
+        'logout',
+        'Login',
+        `Logout realizado`
+      )
+    }
     setSessao(null)
     toast.info("Você saiu do sistema")
   }
@@ -121,6 +143,8 @@ function App() {
   }
 
   const handleSaveProcesso = (processoData: Omit<ProcessoDespesa, "id"> & { id?: string }) => {
+    const isEdit = !!processoData.id
+    
     setProcessos((current) => {
       const currentArray = current || []
       if (processoData.id) {
@@ -133,12 +157,40 @@ function App() {
         return [...currentArray, novoProcesso]
       }
     })
+    
+    // Registrar log
+    if (sessao) {
+      logService.registrarLog(
+        sessao.usuarioId,
+        sessao.nome,
+        sessao.email,
+        isEdit ? 'editar' : 'criar',
+        'Processos',
+        `Processo ${processoData.nf || 'S/N'} - ${isEdit ? 'editado' : 'criado'}`
+      )
+    }
+    
     toast.success(processoData.id ? "Processo atualizado com sucesso" : "Processo criado com sucesso")
     setProcessoEditando(undefined)
   }
 
   const handleDeleteProcesso = (id: string) => {
+    const processo = processosArray.find(p => p.id === id)
+    
     setProcessos((current) => (current || []).filter((p) => p.id !== id))
+    
+    // Registrar log
+    if (sessao && processo) {
+      logService.registrarLog(
+        sessao.usuarioId,
+        sessao.nome,
+        sessao.email,
+        'excluir',
+        'Processos',
+        `Processo ${processo.nf || 'S/N'} excluído`
+      )
+    }
+    
     toast.success("Processo excluído com sucesso")
   }
 
@@ -272,6 +324,10 @@ function App() {
 
             {abaAtiva === "usuarios" && (
               <PainelUsuarios />
+            )}
+
+            {abaAtiva === "logs" && (
+              <PainelLogs />
             )}
 
             {abaAtiva === "sincronizacao" && (
