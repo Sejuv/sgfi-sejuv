@@ -1,14 +1,6 @@
 import { ProcessoDespesa } from "./types"
 import { Secretaria, Setor, Conta, Credor, Objeto, Recurso } from "./cadastros-types"
 
-declare const spark: {
-  kv: {
-    get: <T>(key: string) => Promise<T | undefined>
-    set: <T>(key: string, value: T) => Promise<void>
-    delete: (key: string) => Promise<void>
-  }
-}
-
 export interface SyncData {
   processos: ProcessoDespesa[]
   secretarias: Secretaria[]
@@ -41,40 +33,53 @@ const SYNC_KEYS = {
 }
 
 export class SyncService {
+  private static getFromLocalStorage<T>(key: string): T | null {
+    try {
+      const item = localStorage.getItem(key)
+      return item ? JSON.parse(item) : null
+    } catch {
+      return null
+    }
+  }
+
+  private static setToLocalStorage<T>(key: string, value: T): void {
+    try {
+      localStorage.setItem(key, JSON.stringify(value))
+    } catch (error) {
+      console.error('Erro ao salvar no localStorage:', error)
+    }
+  }
+
   private static async getAllData(): Promise<SyncData> {
-    const [processos, secretarias, setores, contas, credores, objetos, recursos] = await Promise.all([
-      spark.kv.get<ProcessoDespesa[]>(SYNC_KEYS.PROCESSOS),
-      spark.kv.get<Secretaria[]>(SYNC_KEYS.SECRETARIAS),
-      spark.kv.get<Setor[]>(SYNC_KEYS.SETORES),
-      spark.kv.get<Conta[]>(SYNC_KEYS.CONTAS),
-      spark.kv.get<Credor[]>(SYNC_KEYS.CREDORES),
-      spark.kv.get<Objeto[]>(SYNC_KEYS.OBJETOS),
-      spark.kv.get<Recurso[]>(SYNC_KEYS.RECURSOS)
-    ])
+    const processos = this.getFromLocalStorage<ProcessoDespesa[]>(SYNC_KEYS.PROCESSOS) || []
+    const secretarias = this.getFromLocalStorage<Secretaria[]>(SYNC_KEYS.SECRETARIAS) || []
+    const setores = this.getFromLocalStorage<Setor[]>(SYNC_KEYS.SETORES) || []
+    const contas = this.getFromLocalStorage<Conta[]>(SYNC_KEYS.CONTAS) || []
+    const credores = this.getFromLocalStorage<Credor[]>(SYNC_KEYS.CREDORES) || []
+    const objetos = this.getFromLocalStorage<Objeto[]>(SYNC_KEYS.OBJETOS) || []
+    const recursos = this.getFromLocalStorage<Recurso[]>(SYNC_KEYS.RECURSOS) || []
 
     return {
-      processos: processos || [],
-      secretarias: secretarias || [],
-      setores: setores || [],
-      contas: contas || [],
-      credores: credores || [],
-      objetos: objetos || [],
-      recursos: recursos || [],
+      processos,
+      secretarias,
+      setores,
+      contas,
+      credores,
+      objetos,
+      recursos,
       timestamp: Date.now(),
       version: SYNC_VERSION
     }
   }
 
   private static async setAllData(data: SyncData): Promise<void> {
-    await Promise.all([
-      spark.kv.set(SYNC_KEYS.PROCESSOS, data.processos),
-      spark.kv.set(SYNC_KEYS.SECRETARIAS, data.secretarias),
-      spark.kv.set(SYNC_KEYS.SETORES, data.setores),
-      spark.kv.set(SYNC_KEYS.CONTAS, data.contas),
-      spark.kv.set(SYNC_KEYS.CREDORES, data.credores),
-      spark.kv.set(SYNC_KEYS.OBJETOS, data.objetos),
-      spark.kv.set(SYNC_KEYS.RECURSOS, data.recursos)
-    ])
+    this.setToLocalStorage(SYNC_KEYS.PROCESSOS, data.processos)
+    this.setToLocalStorage(SYNC_KEYS.SECRETARIAS, data.secretarias)
+    this.setToLocalStorage(SYNC_KEYS.SETORES, data.setores)
+    this.setToLocalStorage(SYNC_KEYS.CONTAS, data.contas)
+    this.setToLocalStorage(SYNC_KEYS.CREDORES, data.credores)
+    this.setToLocalStorage(SYNC_KEYS.OBJETOS, data.objetos)
+    this.setToLocalStorage(SYNC_KEYS.RECURSOS, data.recursos)
   }
 
   static async exportData(): Promise<string> {
@@ -95,7 +100,7 @@ export class SyncService {
       }
 
       await this.setAllData(data)
-      await spark.kv.set(SYNC_KEYS.LAST_SYNC, Date.now())
+      this.setToLocalStorage(SYNC_KEYS.LAST_SYNC, Date.now())
       
     } catch (error) {
       if (error instanceof SyntaxError) {
@@ -120,7 +125,7 @@ export class SyncService {
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
       
-      await spark.kv.set(SYNC_KEYS.LAST_SYNC, Date.now())
+      this.setToLocalStorage(SYNC_KEYS.LAST_SYNC, Date.now())
     } catch (error) {
       throw new Error(`Erro ao fazer download do backup: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
@@ -149,19 +154,18 @@ export class SyncService {
   }
 
   static async getLastSyncTimestamp(): Promise<number | null> {
-    return await spark.kv.get<number>(SYNC_KEYS.LAST_SYNC) || null
+    return this.getFromLocalStorage<number>(SYNC_KEYS.LAST_SYNC)
   }
 
   static async clearAllData(): Promise<void> {
-    await Promise.all([
-      spark.kv.delete(SYNC_KEYS.PROCESSOS),
-      spark.kv.delete(SYNC_KEYS.SECRETARIAS),
-      spark.kv.delete(SYNC_KEYS.SETORES),
-      spark.kv.delete(SYNC_KEYS.CONTAS),
-      spark.kv.delete(SYNC_KEYS.CREDORES),
-      spark.kv.delete(SYNC_KEYS.OBJETOS),
-      spark.kv.delete(SYNC_KEYS.RECURSOS)
-    ])
+    localStorage.removeItem(SYNC_KEYS.PROCESSOS)
+    localStorage.removeItem(SYNC_KEYS.SECRETARIAS)
+    localStorage.removeItem(SYNC_KEYS.SETORES)
+    localStorage.removeItem(SYNC_KEYS.CONTAS)
+    localStorage.removeItem(SYNC_KEYS.CREDORES)
+    localStorage.removeItem(SYNC_KEYS.OBJETOS)
+    localStorage.removeItem(SYNC_KEYS.RECURSOS)
+    localStorage.removeItem(SYNC_KEYS.LAST_SYNC)
   }
 
   static async getDataStatistics() {
@@ -175,7 +179,7 @@ export class SyncService {
       totalCredores: data.credores.length,
       totalObjetos: data.objetos.length,
       totalRecursos: data.recursos.length,
-      totalValorProcessos: data.processos.reduce((acc, p) => acc + p.valor, 0),
+      totalValorProcessos: data.processos.reduce((acc, p) => acc + (p.valor || 0), 0),
       processosPendentes: data.processos.filter(p => !p.dataTesouraria).length
     }
   }

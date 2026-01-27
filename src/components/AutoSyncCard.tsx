@@ -19,13 +19,6 @@ import {
   Warning 
 } from "@phosphor-icons/react"
 
-declare const spark: {
-  kv: {
-    get: <T>(key: string) => Promise<T | undefined>
-    set: <T>(key: string, value: T) => Promise<void>
-  }
-}
-
 interface AutoSyncSettings {
   enabled: boolean
   interval: number
@@ -40,10 +33,18 @@ export function AutoSyncCard() {
   const [isSyncing, setIsSyncing] = useState(false)
 
   useEffect(() => {
-    const loadSettings = async () => {
-      const saved = await spark.kv.get<AutoSyncSettings>("auto-sync-settings")
-      if (saved) {
-        setSettings(saved)
+    const loadSettings = () => {
+      try {
+        const saved = localStorage.getItem("auto-sync-settings")
+        if (saved) {
+          setSettings(JSON.parse(saved))
+        }
+        const lastSync = localStorage.getItem("auto-sync-last")
+        if (lastSync) {
+          setLastAutoSync(parseInt(lastSync))
+        }
+      } catch (error) {
+        console.error("Erro ao carregar configurações:", error)
       }
     }
     loadSettings()
@@ -56,8 +57,9 @@ export function AutoSyncCard() {
       setIsSyncing(true)
       try {
         await SyncService.downloadBackup()
-        setLastAutoSync(Date.now())
-        await spark.kv.set("auto-sync-last", Date.now())
+        const now = Date.now()
+        setLastAutoSync(now)
+        localStorage.setItem("auto-sync-last", now.toString())
       } catch (error) {
         console.error("Auto-sync failed:", error)
       } finally {
@@ -69,10 +71,10 @@ export function AutoSyncCard() {
     return () => clearInterval(intervalId)
   }, [settings.enabled, settings.interval])
 
-  const handleToggle = async (enabled: boolean) => {
+  const handleToggle = (enabled: boolean) => {
     const newSettings = { ...settings, enabled }
     setSettings(newSettings)
-    await spark.kv.set("auto-sync-settings", newSettings)
+    localStorage.setItem("auto-sync-settings", JSON.stringify(newSettings))
     
     if (enabled) {
       toast.success("Sincronização automática ativada")
@@ -81,10 +83,10 @@ export function AutoSyncCard() {
     }
   }
 
-  const handleIntervalChange = async (interval: string) => {
+  const handleIntervalChange = (interval: string) => {
     const newSettings = { ...settings, interval: parseInt(interval) }
     setSettings(newSettings)
-    await spark.kv.set("auto-sync-settings", newSettings)
+    localStorage.setItem("auto-sync-settings", JSON.stringify(newSettings))
     toast.success("Intervalo de sincronização atualizado")
   }
 
@@ -92,8 +94,9 @@ export function AutoSyncCard() {
     setIsSyncing(true)
     try {
       await SyncService.downloadBackup()
-      setLastAutoSync(Date.now())
-      await spark.kv.set("auto-sync-last", Date.now())
+      const now = Date.now()
+      setLastAutoSync(now)
+      localStorage.setItem("auto-sync-last", now.toString())
       toast.success("Sincronização manual concluída")
     } catch (error) {
       toast.error("Erro ao sincronizar")
