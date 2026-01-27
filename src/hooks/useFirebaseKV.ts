@@ -32,18 +32,26 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
     
     // Carrega dados do Firebase se não estiverem em cache
     if (!globalCache.has(key)) {
+      console.log(`🔄 Carregando dados iniciais do Firebase para "${key}"`)
       loadFromFirestore(key, defaultValueRef.current).then((data) => {
         if (isMountedRef.current) {
-          // Sempre atualiza cache e state, mesmo se data for defaultValue
+          console.log(`📦 Dados carregados do Firebase para "${key}":`, data)
           globalCache.set(key, data)
           setValue(data)
         }
+      }).catch((error) => {
+        console.error(`❌ Erro ao carregar dados iniciais de "${key}":`, error)
+        globalCache.set(key, defaultValueRef.current)
+        setValue(defaultValueRef.current)
       })
+    } else {
+      console.log(`💾 Usando cache existente para "${key}"`)
     }
     
     // Callback para quando dados mudarem
     const onDataChange = (data: any) => {
       if (isMountedRef.current) {
+        console.log(`🔔 Dados alterados para "${key}":`, data)
         globalCache.set(key, data)
         setValue(data)
       }
@@ -57,6 +65,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
 
     // Cria listener global apenas se não existir
     if (!globalUnsubscribers.has(key)) {
+      console.log(`📡 Criando listener do Firebase para "${key}"`)
       const unsubscribe = subscribeToFirestore(key, (data) => {
         // Ignora atualizações do listener se estamos salvando essa key
         if (savingKeys.has(key)) {
@@ -64,14 +73,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
           return
         }
         
-        // Se o listener retornar defaultValue mas já temos dados em cache, mantém o cache
-        const cachedData = globalCache.get(key)
-        const isDefaultValue = JSON.stringify(data) === JSON.stringify(defaultValueRef.current)
-        
-        if (isDefaultValue && cachedData && JSON.stringify(cachedData) !== JSON.stringify(defaultValueRef.current)) {
-          console.log(`⚠️ Mantendo dados em cache para "${key}" (ignorando defaultValue do listener)`)
-          return
-        }
+        console.log(`📥 Dados recebidos do Firebase para "${key}":`, data)
         
         globalCache.set(key, data)
         // Notifica todos os listeners locais
@@ -94,6 +96,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
         
         // Se não há mais listeners, remove o listener global
         if (listeners.size === 0) {
+          console.log(`🔌 Removendo listener do Firebase para "${key}"`)
           const unsubscribe = globalUnsubscribers.get(key)
           if (unsubscribe) {
             unsubscribe()
@@ -116,6 +119,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
       ? (newValue as (prev: T) => T)(value)
       : newValue
     
+    console.log(`💾 Salvando dados em "${key}":`, resolvedValue)
     setValue(resolvedValue)
     globalCache.set(key, resolvedValue)
     
@@ -125,14 +129,15 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
     // Salva imediatamente no Firebase
     saveToFirestore(key, resolvedValue)
       .then(() => {
-        console.log(`✅ Dados salvos com sucesso em "${key}"`)
+        console.log(`✅ Dados salvos com sucesso no Firebase em "${key}"`)
         // Aguarda um pouco antes de permitir atualizações do listener novamente
         setTimeout(() => {
           savingKeys.delete(key)
-        }, 1000) // Aumentado de 500ms para 1000ms
+          console.log(`🔓 Liberando listener para "${key}"`)
+        }, 2000)
       })
       .catch(error => {
-        console.error('❌ Erro ao salvar:', error)
+        console.error(`❌ Erro ao salvar em "${key}":`, error)
         savingKeys.delete(key)
       })
   }, [key, value])

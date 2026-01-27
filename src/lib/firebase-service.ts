@@ -52,11 +52,26 @@ export async function saveToFirestore(key: string, data: any): Promise<void> {
   try {
     const docRef = doc(db, COLLECTION_NAME, key)
     const cleanedData = removeUndefined(data)
-    console.log(`🔥 Tentando salvar em "${key}"...`, { collection: COLLECTION_NAME, docId: key })
-    await setDoc(docRef, { data: cleanedData, updatedAt: new Date().toISOString() })
-    console.log(`✅ Firebase: Dados salvos com sucesso em "${key}"`)
+    const timestamp = new Date().toISOString()
+    
+    console.log(`🔥 Salvando em "${key}" no Firebase...`, { 
+      collection: COLLECTION_NAME, 
+      docId: key,
+      dataSize: JSON.stringify(cleanedData).length 
+    })
+    
+    await setDoc(docRef, { 
+      data: cleanedData, 
+      updatedAt: timestamp,
+      _metadata: {
+        lastModified: timestamp,
+        version: 1
+      }
+    }, { merge: false })
+    
+    console.log(`✅ Firebase: Dados persistidos com sucesso em "${key}" às ${timestamp}`)
   } catch (error) {
-    console.error(`❌ Erro ao salvar no Firebase (${key}):`, error)
+    console.error(`❌ Erro crítico ao salvar no Firebase (${key}):`, error)
     throw error
   }
 }
@@ -66,15 +81,21 @@ export async function saveToFirestore(key: string, data: any): Promise<void> {
  */
 export async function loadFromFirestore(key: string, defaultValue: any = null): Promise<any> {
   try {
+    console.log(`🔍 Carregando "${key}" do Firebase...`)
     const docRef = doc(db, COLLECTION_NAME, key)
     const docSnap = await getDoc(docRef)
     
     if (docSnap.exists()) {
-      const result = docSnap.data().data
-      // console.log(`🔥 Firebase: Dados carregados de "${key}"`, result)
+      const docData = docSnap.data()
+      const result = docData.data
+      console.log(`✅ Firebase: Dados encontrados em "${key}"`, {
+        hasData: !!result,
+        updatedAt: docData.updatedAt,
+        dataSize: JSON.stringify(result).length
+      })
       return result
     } else {
-      // console.log(`🔥 Firebase: Documento "${key}" não existe, usando valor padrão`)
+      console.log(`⚠️ Firebase: Documento "${key}" não existe, retornando valor padrão`)
       return defaultValue
     }
   } catch (error) {
@@ -92,20 +113,23 @@ export function subscribeToFirestore(
   defaultValue: any = null
 ): Unsubscribe {
   const docRef = doc(db, COLLECTION_NAME, key)
-  console.log(`📡 Inscrevendo listener para "${key}"`)
+  console.log(`📡 Criando listener em tempo real para "${key}"`)
   
   return onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
-      const data = docSnap.data().data
-      console.log(`📥 Firebase: Dados recebidos em "${key}"`)
+      const docData = docSnap.data()
+      const data = docData.data
+      console.log(`📥 Firebase: Atualização recebida em "${key}"`, {
+        hasData: !!data,
+        updatedAt: docData.updatedAt
+      })
       callback(data)
     } else {
-      // Documento não existe - chama callback com defaultValue apenas se não houver dados em cache
-      console.log(`⚠️ Firebase: Documento "${key}" não existe no Firestore, usando defaultValue`)
+      console.log(`⚠️ Firebase: Documento "${key}" não existe no snapshot, usando defaultValue`)
       callback(defaultValue)
     }
   }, (error) => {
-    console.error(`❌ Erro ao escutar mudanças no Firebase (${key}):`, error)
+    console.error(`❌ Erro no listener do Firebase (${key}):`, error)
   })
 }
 
