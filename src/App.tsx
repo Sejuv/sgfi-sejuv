@@ -60,27 +60,21 @@ function App() {
   useEffect(() => {
     const inicializarUsuarios = async () => {
       const usuariosExistentes = usuarios || []
-      console.log('🔍 Verificando usuários existentes:', usuariosExistentes.length)
       
       if (usuariosExistentes.length === 0) {
-        console.log('⚙️ Nenhum usuário encontrado, criando admin inicial...')
         const usuarioAdmin = await criarUsuarioInicial()
         setUsuarios([usuarioAdmin])
-        console.log('✅ Usuário admin criado:', usuarioAdmin)
-      } else {
-        console.log('✅ Usuários já existem:', usuariosExistentes.map(u => u.email))
       }
     }
+    
+    // Só inicializa uma vez quando o componente monta
     inicializarUsuarios()
   }, [])
 
   const handleLogin = async (email: string, senha: string): Promise<boolean> => {
-    console.log('Tentando login com:', email)
     const usuariosArray = usuarios || []
-    console.log('Usuários disponíveis:', usuariosArray.length)
     
     const usuario = await validarCredenciais(email, senha, usuariosArray)
-    console.log('Resultado da validação:', usuario ? 'Sucesso' : 'Falhou')
     
     if (usuario) {
       const novaSessao = criarSessao(usuario)

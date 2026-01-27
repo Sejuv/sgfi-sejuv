@@ -26,7 +26,7 @@ export async function saveToFirestore(key: string, data: any): Promise<void> {
   try {
     const docRef = doc(db, COLLECTION_NAME, key)
     await setDoc(docRef, { data, updatedAt: new Date().toISOString() })
-    console.log(`🔥 Firebase: Dados salvos em "${key}"`)
+    // console.log(`🔥 Firebase: Dados salvos em "${key}"`)
   } catch (error) {
     console.error(`❌ Erro ao salvar no Firebase (${key}):`, error)
     throw error
@@ -43,10 +43,10 @@ export async function loadFromFirestore(key: string, defaultValue: any = null): 
     
     if (docSnap.exists()) {
       const result = docSnap.data().data
-      console.log(`🔥 Firebase: Dados carregados de "${key}"`, result)
+      // console.log(`🔥 Firebase: Dados carregados de "${key}"`, result)
       return result
     } else {
-      console.log(`🔥 Firebase: Documento "${key}" não existe, usando valor padrão`)
+      // console.log(`🔥 Firebase: Documento "${key}" não existe, usando valor padrão`)
       return defaultValue
     }
   } catch (error) {
@@ -68,10 +68,10 @@ export function subscribeToFirestore(
   return onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data().data
-      console.log(`🔥 Firebase: Atualização recebida em "${key}"`, data)
+      // console.log(`🔥 Firebase: Atualização recebida em "${key}"`, data)
       callback(data)
     } else {
-      console.log(`🔥 Firebase: Documento "${key}" deletado, usando valor padrão`)
+      // console.log(`🔥 Firebase: Documento "${key}" deletado, usando valor padrão`)
       callback(defaultValue)
     }
   }, (error) => {

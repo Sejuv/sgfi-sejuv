@@ -53,17 +53,6 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
   const [meses] = useFirebaseKV<Mes[]>("cadastro-meses", [])
   const [recursos] = useFirebaseKV<Recurso[]>("cadastro-recursos", [])
 
-  useEffect(() => {
-    console.log('📊 Dados carregados no ProcessoForm:')
-    console.log('Secretarias:', secretarias)
-    console.log('Setores:', setores)
-    console.log('Contas:', contas)
-    console.log('Credores:', credores)
-    console.log('Objetos:', objetos)
-    console.log('Meses:', meses)
-    console.log('Recursos:', recursos)
-  }, [secretarias, setores, contas, credores, objetos, meses, recursos])
-
   const [formData, setFormData] = useState<Omit<ProcessoDespesa, "id"> & { id?: string }>({
     ano: new Date().getFullYear(),
     secretaria: "",
@@ -114,7 +103,7 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
       })
       setSecretariaIdSelecionada("")
     }
-  }, [processo, open, secretarias])
+  }, [processo, open])
 
   useEffect(() => {
     if (!open) return
