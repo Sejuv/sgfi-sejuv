@@ -94,32 +94,54 @@ function App() {
     return { total, pendentes, quantidade: processosFiltrados.length }
   }, [processosFiltrados])
 
-  // Inicializa usuário admin apenas UMA VEZ na montagem do componente
+  // Inicializa usuário admin apenas se necessário
   const inicializadoRef = useRef(false)
-  
+  const tentativasRef = useRef(0)
+  const MAX_TENTATIVAS = 10
+
   useEffect(() => {
-    const inicializarUsuarios = async () => {
-      // Já tentou inicializar? Sai
+    const inicializarUsuarios = () => {
+      // Já inicializou com sucesso? Sai
       if (inicializadoRef.current) return
-      inicializadoRef.current = true
       
-      // Aguarda um pouco para dar tempo do Firebase carregar
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      // Verifica se usuarios já foi carregado do Firebase
+      // Se ainda é array vazio default E não são os dados reais do Firebase, aguarda
       const usuariosExistentes = usuarios || []
       
-      // Só cria usuário se realmente não existir nenhum após o carregamento
-      if (usuariosExistentes.length === 0) {
-        console.log("📝 Nenhum usuário encontrado. Criando usuário administrativo inicial...")
-        const usuarioAdmin = await criarUsuarioInicial()
-        setUsuarios([usuarioAdmin])
-      } else {
+      console.log(`🔍 Verificando usuários (tentativa ${tentativasRef.current + 1}/${MAX_TENTATIVAS}):`, {
+        length: usuariosExistentes.length,
+        usuarios: usuariosExistentes
+      })
+      
+      // Se tem usuários, marca como inicializado e não faz nada
+      if (usuariosExistentes.length > 0) {
         console.log(`✅ ${usuariosExistentes.length} usuário(s) já cadastrado(s)`)
+        inicializadoRef.current = true
+        return
       }
+      
+      // Incrementa tentativas
+      tentativasRef.current++
+      
+      // Se ainda não atingiu o máximo de tentativas, aguarda mais
+      if (tentativasRef.current < MAX_TENTATIVAS) {
+        console.log(`⏳ Aguardando Firebase carregar... (tentativa ${tentativasRef.current}/${MAX_TENTATIVAS})`)
+        setTimeout(inicializarUsuarios, 500)
+        return
+      }
+      
+      // Após todas as tentativas, se realmente não tem nenhum usuário, cria o admin
+      console.log("📝 Nenhum usuário encontrado após carregar. Criando usuário administrativo inicial...")
+      criarUsuarioInicial().then(usuarioAdmin => {
+        setUsuarios([usuarioAdmin])
+        inicializadoRef.current = true
+      })
     }
     
-    inicializarUsuarios()
-  }, []) // Array vazio - executa apenas UMA VEZ
+    // Aguarda 500ms antes da primeira verificação para dar tempo do Firebase inicializar
+    const timer = setTimeout(inicializarUsuarios, 500)
+    return () => clearTimeout(timer)
+  }, [usuarios]) // ✅ Agora depende de usuarios para reagir quando carregar
 
   const handleLogin = async (email: string, senha: string): Promise<boolean> => {
     const usuariosArray = usuarios || []
