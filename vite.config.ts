@@ -17,4 +17,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
+  build: {
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Ignorar avisos TypeScript
+        if (warning.code === 'PLUGIN_WARNING') return
+        warn(warning)
+      }
+    }
+  }
 });
