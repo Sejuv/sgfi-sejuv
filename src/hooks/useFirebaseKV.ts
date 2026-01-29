@@ -155,23 +155,92 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
         ? (newValue as (prev: T) => T)(currentValue)
         : newValue
       
-      console.log(`💾 [${key}] Salvando no Firebase`)
+      console.log(`💾 [${key}] Salvando no Firebase`, {
+        tipo: Array.isArray(resolvedValue) ? 'Array' : typeof resolvedValue,
+        tamanho: Array.isArray(resolvedValue) ? resolvedValue.length : 'N/A'
+      })
+      
       globalCache.set(key, resolvedValue)
       
       savingKeys.add(key)
       lastSaveTimestamp.set(key, Date.now())
       
+      const unsubscribe = globalUnsubscribers.get(key)
+      if (unsubscribe) {
+        console.log(`🔇 [${key}] Desabilitando listener temporariamente durante save`)
+        unsubscribe()
+        globalUnsubscribers.delete(key)
+      }
+      
       saveToFirestore(key, resolvedValue)
         .then(() => {
-          console.log(`✅ [${key}] Salvo com sucesso`)
+          console.log(`✅ [${key}] Salvo com sucesso no Firebase`)
+          
           setTimeout(() => {
+            console.log(`📡 [${key}] Reativando listener após save`)
+            
+            const newUnsubscribe = subscribeToFirestore(
+              key,
+              (listenerData) => {
+                if (savingKeys.has(key)) {
+                  console.log(`⏭️ [${key}] Ignorando atualização (salvamento em andamento)`)
+                  return
+                }
+                
+                const lastSave = lastSaveTimestamp.get(key) || 0
+                const timeSinceLastSave = Date.now() - lastSave
+                
+                if (timeSinceLastSave < 5000) {
+                  console.log(`⏭️ [${key}] Ignorando atualização (salvamento recente há ${timeSinceLastSave}ms)`)
+                  return
+                }
+                
+                const currentCache = globalCache.get(key)
+                
+                if (Array.isArray(currentCache) && Array.isArray(listenerData)) {
+                  if (currentCache.length > listenerData.length) {
+                    console.warn(`⚠️ [${key}] Listener retornou MENOS dados (${listenerData.length}) do que o cache atual (${currentCache.length}). BLOQUEADO.`)
+                    return
+                  }
+                }
+                
+                console.log(`📥 [${key}] Atualização recebida do listener`, {
+                  cacheLength: Array.isArray(currentCache) ? currentCache.length : 'N/A',
+                  listenerLength: Array.isArray(listenerData) ? listenerData.length : 'N/A'
+                })
+                
+                globalCache.set(key, listenerData)
+                
+                const listeners = globalListeners.get(key)
+                if (listeners) {
+                  listeners.forEach(listener => listener(listenerData))
+                }
+              },
+              resolvedValue
+            )
+            
+            globalUnsubscribers.set(key, newUnsubscribe)
+            
             savingKeys.delete(key)
-            console.log(`🔓 [${key}] Liberando listener`)
-          }, 3000)
+            console.log(`🔓 [${key}] Listener reativado e proteção removida`)
+          }, 5000)
         })
         .catch(error => {
           console.error(`❌ [${key}] Erro ao salvar:`, error)
           savingKeys.delete(key)
+          
+          const newUnsubscribe = subscribeToFirestore(
+            key,
+            (listenerData) => {
+              globalCache.set(key, listenerData)
+              const listeners = globalListeners.get(key)
+              if (listeners) {
+                listeners.forEach(listener => listener(listenerData))
+              }
+            },
+            resolvedValue
+          )
+          globalUnsubscribers.set(key, newUnsubscribe)
         })
       
       return resolvedValue
