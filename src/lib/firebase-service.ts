@@ -49,30 +49,43 @@ function removeUndefined(obj: any): any {
  * Salva dados no Firestore
  */
 export async function saveToFirestore(key: string, data: any): Promise<void> {
-  try {
-    const docRef = doc(db, COLLECTION_NAME, key)
-    const cleanedData = removeUndefined(data)
-    const timestamp = new Date().toISOString()
-    
-    console.log(`🔥 Salvando em "${key}" no Firebase...`, { 
-      collection: COLLECTION_NAME, 
-      docId: key,
-      dataSize: JSON.stringify(cleanedData).length 
-    })
-    
-    await setDoc(docRef, { 
-      data: cleanedData, 
-      updatedAt: timestamp,
-      _metadata: {
-        lastModified: timestamp,
-        version: 1
+  const maxRetries = 3
+  let attempt = 0
+  
+  while (attempt < maxRetries) {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, key)
+      const cleanedData = removeUndefined(data)
+      const timestamp = new Date().toISOString()
+      
+      console.log(`🔥 Salvando em "${key}" no Firebase (tentativa ${attempt + 1}/${maxRetries})...`, { 
+        collection: COLLECTION_NAME, 
+        docId: key,
+        dataSize: JSON.stringify(cleanedData).length 
+      })
+      
+      await setDoc(docRef, { 
+        data: cleanedData, 
+        updatedAt: timestamp,
+        _metadata: {
+          lastModified: timestamp,
+          version: 1
+        }
+      }, { merge: false })
+      
+      console.log(`✅ Firebase: Dados persistidos com sucesso em "${key}" às ${timestamp}`)
+      return
+    } catch (error) {
+      attempt++
+      console.error(`❌ Erro ao salvar no Firebase (${key}) - tentativa ${attempt}/${maxRetries}:`, error)
+      
+      if (attempt >= maxRetries) {
+        console.error(`❌ Erro crítico: Falha após ${maxRetries} tentativas`)
+        throw error
       }
-    }, { merge: false })
-    
-    console.log(`✅ Firebase: Dados persistidos com sucesso em "${key}" às ${timestamp}`)
-  } catch (error) {
-    console.error(`❌ Erro crítico ao salvar no Firebase (${key}):`, error)
-    throw error
+      
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+    }
   }
 }
 

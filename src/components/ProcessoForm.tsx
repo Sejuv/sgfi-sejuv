@@ -159,12 +159,8 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
             break
           case '9':
             e.preventDefault()
-            if (!secretariaIdSelecionada) {
-              toast.warning("Selecione uma secretaria primeiro")
-            } else {
-              recursoRef.current?.click()
-              toast.info("Campo: Recurso")
-            }
+            recursoRef.current?.click()
+            toast.info("Campo: Recurso")
             break
           case '0':
             e.preventDefault()
@@ -189,10 +185,9 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
     return (setores || []).filter(s => s.secretariaId === secretariaIdSelecionada && s.ativo)
   }, [setores, secretariaIdSelecionada])
 
-  const recursosFiltrados = useMemo(() => {
-    if (!secretariaIdSelecionada) return []
-    return (recursos || []).filter(r => r.secretariaId === secretariaIdSelecionada && r.ativo)
-  }, [recursos, secretariaIdSelecionada])
+  const recursosAtivos = useMemo(() => {
+    return (recursos || []).filter(r => r.ativo)
+  }, [recursos])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -252,7 +247,7 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
               onValueChange={(value) => {
                 const secretaria = secretariasAtivas.find(s => s.nome === value)
                 setSecretariaIdSelecionada(secretaria?.id || "")
-                setFormData({ ...formData, secretaria: value, setor: "", recurso: "" })
+                setFormData({ ...formData, secretaria: value, setor: "" })
               }}
               required
             >
@@ -434,14 +429,13 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
             <Select
               value={formData.recurso}
               onValueChange={(value) => setFormData({ ...formData, recurso: value })}
-              disabled={!secretariaIdSelecionada}
               required
             >
               <SelectTrigger ref={recursoRef} id="recurso">
-                <SelectValue placeholder={secretariaIdSelecionada ? "Selecione o recurso" : "Selecione uma secretaria primeiro"} />
+                <SelectValue placeholder="Selecione o recurso" />
               </SelectTrigger>
               <SelectContent>
-                {recursosFiltrados.map((rec) => (
+                {recursosAtivos.map((rec) => (
                   <SelectItem key={rec.id} value={rec.nome}>
                     {rec.nome}
                   </SelectItem>

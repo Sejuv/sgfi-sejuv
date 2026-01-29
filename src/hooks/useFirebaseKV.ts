@@ -7,6 +7,7 @@ const globalListeners = new Map<string, Set<(data: any) => void>>()
 const globalUnsubscribers = new Map<string, Unsubscribe>()
 const savingKeys = new Set<string>()
 const loadingPromises = new Map<string, Promise<any>>()
+const lastSaveTimestamp = new Map<string, number>()
 
 export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void] {
   const defaultValueRef = useRef<T>(defaultValue)
@@ -82,6 +83,22 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
               return
             }
             
+            const lastSave = lastSaveTimestamp.get(key) || 0
+            const timeSinceLastSave = Date.now() - lastSave
+            
+            if (timeSinceLastSave < 2000) {
+              console.log(`⏭️ [${key}] Ignorando atualização (salvamento recente há ${timeSinceLastSave}ms)`)
+              return
+            }
+            
+            const currentCache = globalCache.get(key)
+            const isSameData = JSON.stringify(currentCache) === JSON.stringify(listenerData)
+            
+            if (isSameData) {
+              console.log(`⏭️ [${key}] Ignorando atualização (dados idênticos)`)
+              return
+            }
+            
             console.log(`📥 [${key}] Atualização recebida do listener`)
             globalCache.set(key, listenerData)
             
@@ -129,6 +146,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
       globalCache.set(key, resolvedValue)
       
       savingKeys.add(key)
+      lastSaveTimestamp.set(key, Date.now())
       
       saveToFirestore(key, resolvedValue)
         .then(() => {
@@ -136,7 +154,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
           setTimeout(() => {
             savingKeys.delete(key)
             console.log(`🔓 [${key}] Liberando listener`)
-          }, 500)
+          }, 2000)
         })
         .catch(error => {
           console.error(`❌ [${key}] Erro ao salvar:`, error)

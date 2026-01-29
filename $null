@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/App.tsx', LF will be replaced by CRLF the next time Git touches it
+error: pathspec 'corrige' did not match any file(s) known to git
+error: pathspec 'sobrescrita' did not match any file(s) known to git
+error: pathspec 'de' did not match any file(s) known to git
+error: pathspec 'usuarios' did not match any file(s) known to git
+error: pathspec 'ao' did not match any file(s) known to git
+error: pathspec 'carregar' did not match any file(s) known to git
+error: pathspec 'pagina' did not match any file(s) known to git
+Everything up-to-date

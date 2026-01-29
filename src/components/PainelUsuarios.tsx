@@ -53,6 +53,9 @@ export function PainelUsuarios() {
 
   const handleSaveUsuario = (usuarioData: Omit<Usuario, "id"> & { id?: string }) => {
     console.log(`👤 handleSaveUsuario chamado:`, usuarioData)
+    
+    const usuarioId = usuarioData.id || Date.now().toString()
+    
     setUsuarios((current) => {
       const currentArray = current || []
       console.log(`📊 Array atual de usuários (antes):`, currentArray)
@@ -64,15 +67,27 @@ export function PainelUsuarios() {
       } else {
         const novoUsuario: Usuario = {
           ...usuarioData,
-          id: Date.now().toString(),
+          id: usuarioId,
         }
         resultado = [...currentArray, novoUsuario]
         console.log(`➕ Adicionando novo usuário ID: ${novoUsuario.id}`)
       }
       
       console.log(`📊 Array de usuários (depois):`, resultado)
+      console.log(`🔢 Total de usuários: ${resultado.length}`)
+      
+      setTimeout(() => {
+        const verificacao = usuariosArray.find(u => u.id === usuarioId)
+        if (verificacao) {
+          console.log(`✅ CONFIRMADO: Usuário ${usuarioId} está no estado local`)
+        } else {
+          console.error(`❌ ERRO: Usuário ${usuarioId} NÃO está no estado local!`)
+        }
+      }, 1000)
+      
       return resultado
     })
+    
     toast.success(usuarioData.id ? "Usuário atualizado com sucesso" : "Usuário criado com sucesso")
     setUsuarioEditando(undefined)
   }
