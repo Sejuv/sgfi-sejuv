@@ -77,18 +77,22 @@ export function PainelUsuarios() {
       console.log(`🔢 Total de usuários: ${resultado.length}`)
       
       setTimeout(() => {
-        const verificacao = usuariosArray.find(u => u.id === usuarioId)
-        if (verificacao) {
-          console.log(`✅ CONFIRMADO: Usuário ${usuarioId} está no estado local`)
-        } else {
-          console.error(`❌ ERRO: Usuário ${usuarioId} NÃO está no estado local!`)
-        }
-      }, 1000)
+        console.log(`🔍 Verificando após 5 segundos se usuário ${usuarioId} permanece...`)
+        setTimeout(() => {
+          const verificacaoFinal = usuarios?.find(u => u.id === usuarioId)
+          if (verificacaoFinal) {
+            console.log(`✅ CONFIRMADO após 5s: Usuário ${usuarioId} está persistido`)
+          } else {
+            console.error(`❌ ERRO após 5s: Usuário ${usuarioId} SUMIU!`)
+            console.error(`📋 Usuários atuais:`, usuarios)
+          }
+        }, 5000)
+      }, 100)
       
       return resultado
     })
     
-    toast.success(usuarioData.id ? "Usuário atualizado com sucesso" : "Usuário criado com sucesso")
+    toast.success(usuarioData.id ? "Usuário atualizado com sucesso" : "Usuário criado com sucesso. Aguarde 5 segundos antes de sair.")
     setUsuarioEditando(undefined)
   }
 

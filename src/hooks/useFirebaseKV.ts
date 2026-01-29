@@ -86,20 +86,33 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
             const lastSave = lastSaveTimestamp.get(key) || 0
             const timeSinceLastSave = Date.now() - lastSave
             
-            if (timeSinceLastSave < 2000) {
+            if (timeSinceLastSave < 3000) {
               console.log(`⏭️ [${key}] Ignorando atualização (salvamento recente há ${timeSinceLastSave}ms)`)
               return
             }
             
             const currentCache = globalCache.get(key)
-            const isSameData = JSON.stringify(currentCache) === JSON.stringify(listenerData)
             
-            if (isSameData) {
-              console.log(`⏭️ [${key}] Ignorando atualização (dados idênticos)`)
-              return
+            if (Array.isArray(currentCache) && Array.isArray(listenerData)) {
+              if (currentCache.length === listenerData.length) {
+                const isSameData = JSON.stringify(currentCache.sort()) === JSON.stringify(listenerData.sort())
+                if (isSameData) {
+                  console.log(`⏭️ [${key}] Ignorando atualização (dados idênticos)`)
+                  return
+                }
+              }
+              
+              if (currentCache.length > listenerData.length) {
+                console.warn(`⚠️ [${key}] Listener retornou MENOS dados (${listenerData.length}) do que o cache atual (${currentCache.length}). Ignorando.`)
+                return
+              }
             }
             
-            console.log(`📥 [${key}] Atualização recebida do listener`)
+            console.log(`📥 [${key}] Atualização recebida do listener`, {
+              cacheLength: Array.isArray(currentCache) ? currentCache.length : 'N/A',
+              listenerLength: Array.isArray(listenerData) ? listenerData.length : 'N/A'
+            })
+            
             globalCache.set(key, listenerData)
             
             const listeners = globalListeners.get(key)
@@ -154,7 +167,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
           setTimeout(() => {
             savingKeys.delete(key)
             console.log(`🔓 [${key}] Liberando listener`)
-          }, 2000)
+          }, 3000)
         })
         .catch(error => {
           console.error(`❌ [${key}] Erro ao salvar:`, error)
