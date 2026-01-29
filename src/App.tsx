@@ -32,12 +32,11 @@ import { toast, Toaster } from "sonner"
 import { logService } from "@/lib/log-service"
 
 function App() {
-  // Sincronização em tempo real com Firebase - mantém dados sempre atualizados
   useRealtimeSync(true)
   
   const [processos, setProcessos] = useFirebaseKV<ProcessoDespesa[]>("processos-despesas", [])
   const [usuarios, setUsuarios] = useFirebaseKV<Usuario[]>("usuarios", [])
-  const [sessao, setSessao] = useFirebaseKV<SessaoUsuario | null>("sessao-atual", null)
+  const [sessao, setSessao] = useState<SessaoUsuario | null>(null)
   const [secretarias] = useFirebaseKV<any[]>("cadastro-secretarias", [])
   const [erroLogin, setErroLogin] = useState<string>("")
   const [formOpen, setFormOpen] = useState(false)
@@ -72,6 +71,46 @@ function App() {
     setDarkMode(!darkMode)
   }
 
+  const INACTIVITY_TIMEOUT = 15 * 60 * 1000
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const resetInactivityTimer = () => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
+
+    if (sessao) {
+      inactivityTimerRef.current = setTimeout(() => {
+        console.log('⏰ Timeout de inatividade atingido')
+        handleLogout()
+        toast.warning('Sessão expirada por inatividade', {
+          description: 'Você foi desconectado após 15 minutos de inatividade'
+        })
+      }, INACTIVITY_TIMEOUT)
+    }
+  }
+
+  useEffect(() => {
+    if (!sessao) return
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click']
+    
+    events.forEach(event => {
+      document.addEventListener(event, resetInactivityTimer)
+    })
+
+    resetInactivityTimer()
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, resetInactivityTimer)
+      })
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current)
+      }
+    }
+  }, [sessao])
+
   const processosArray = processos || []
 
   const processosFiltrados = useMemo(() => {
@@ -94,18 +133,14 @@ function App() {
     return { total, pendentes, quantidade: processosFiltrados.length }
   }, [processosFiltrados])
 
-  // Inicializa usuário admin apenas se necessário
   const inicializadoRef = useRef(false)
   const tentativasRef = useRef(0)
   const MAX_TENTATIVAS = 10
 
   useEffect(() => {
     const inicializarUsuarios = () => {
-      // Já inicializou com sucesso? Sai
       if (inicializadoRef.current) return
       
-      // Verifica se usuarios já foi carregado do Firebase
-      // Se ainda é array vazio default E não são os dados reais do Firebase, aguarda
       const usuariosExistentes = usuarios || []
       
       console.log(`🔍 Verificando usuários (tentativa ${tentativasRef.current + 1}/${MAX_TENTATIVAS}):`, {
@@ -113,24 +148,20 @@ function App() {
         usuarios: usuariosExistentes
       })
       
-      // Se tem usuários, marca como inicializado e não faz nada
       if (usuariosExistentes.length > 0) {
         console.log(`✅ ${usuariosExistentes.length} usuário(s) já cadastrado(s)`)
         inicializadoRef.current = true
         return
       }
       
-      // Incrementa tentativas
       tentativasRef.current++
       
-      // Se ainda não atingiu o máximo de tentativas, aguarda mais
       if (tentativasRef.current < MAX_TENTATIVAS) {
         console.log(`⏳ Aguardando Firebase carregar... (tentativa ${tentativasRef.current}/${MAX_TENTATIVAS})`)
         setTimeout(inicializarUsuarios, 500)
         return
       }
       
-      // Após todas as tentativas, se realmente não tem nenhum usuário, cria o admin
       console.log("📝 Nenhum usuário encontrado após carregar. Criando usuário administrativo inicial...")
       criarUsuarioInicial().then(usuarioAdmin => {
         setUsuarios([usuarioAdmin])
@@ -138,10 +169,9 @@ function App() {
       })
     }
     
-    // Aguarda 500ms antes da primeira verificação para dar tempo do Firebase inicializar
     const timer = setTimeout(inicializarUsuarios, 500)
     return () => clearTimeout(timer)
-  }, [usuarios]) // ✅ Agora depende de usuarios para reagir quando carregar
+  }, [usuarios])
 
   const handleLogin = async (email: string, senha: string): Promise<boolean> => {
     const usuariosArray = usuarios || []
@@ -158,7 +188,6 @@ function App() {
         )
       )
       
-      // Registrar log de login
       logService.registrarLog(
         usuario.id,
         usuario.nome,
@@ -228,7 +257,6 @@ function App() {
       }
     })
     
-    // Registrar log
     if (sessao) {
       logService.registrarLog(
         sessao.usuarioId,
@@ -261,7 +289,6 @@ function App() {
     
     setProcessos((current) => (current || []).filter((p) => p.id !== itemToDelete.id))
     
-    // Registrar log
     if (sessao && processo) {
       logService.registrarLog(
         sessao.usuarioId,
@@ -304,7 +331,6 @@ function App() {
       )
     )
 
-    // Registrar log
     if (sessao) {
       const processo = processosArray.find(p => p.id === processoId)
       logService.registrarLog(
@@ -334,7 +360,6 @@ function App() {
       )
     )
 
-    // Registrar log
     if (sessao) {
       logService.registrarLog(
         sessao.usuarioId,
@@ -377,7 +402,7 @@ function App() {
     toast.success("Trâmite atualizado com sucesso")
   }
 
-  const handleImportProcessos = (processosImportados: Omit<ProcessoDespesa, "id">[]) => {
+  const handleImportProcessos = processosImportados: Omit<ProcessoDespesa, "id">[]) => {
     setProcessos((current) => {
       const currentArray = current || []
       const novosProcessos = processosImportados.map((p, index) => ({
