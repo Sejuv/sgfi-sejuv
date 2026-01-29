@@ -402,7 +402,7 @@ function App() {
     toast.success("Trâmite atualizado com sucesso")
   }
 
-  const handleImportProcessos = processosImportados: Omit<ProcessoDespesa, "id">[]) => {
+  const handleImportProcessos = (processosImportados: Omit<ProcessoDespesa, "id">[]) => {
     setProcessos((current) => {
       const currentArray = current || []
       const novosProcessos = processosImportados.map((p, index) => ({
