@@ -24,9 +24,6 @@ class AutoBackupService {
     }, this.backupIntervalMs)
 
     this.isRunning = true
-    
-    // Salvar estado no localStorage
-    localStorage.setItem('autoBackup_enabled', 'true')
   }
 
   // Parar backup automático
@@ -43,9 +40,6 @@ class AutoBackupService {
 
     this.isRunning = false
     console.log('🛑 Backup automático parado')
-    
-    // Salvar estado no localStorage
-    localStorage.setItem('autoBackup_enabled', 'false')
   }
 
   // Executar backup completo para Firebase
@@ -159,9 +153,16 @@ class AutoBackupService {
 
   // Inicializar ao carregar a página
   initialize(): void {
-    const enabled = localStorage.getItem('autoBackup_enabled')
-    if (enabled === 'true') {
-      this.start()
+    const settingsStr = localStorage.getItem('auto-sync-settings')
+    if (settingsStr) {
+      try {
+        const settings = JSON.parse(settingsStr)
+        if (settings.enabled) {
+          this.start()
+        }
+      } catch (error) {
+        console.error('Erro ao carregar configurações de sincronização:', error)
+      }
     }
   }
 }

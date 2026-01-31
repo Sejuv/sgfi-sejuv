@@ -39,7 +39,12 @@ export function AutoSyncCard() {
       try {
         const saved = localStorage.getItem("auto-sync-settings")
         if (saved) {
-          setSettings(JSON.parse(saved))
+          const loadedSettings = JSON.parse(saved)
+          setSettings(loadedSettings)
+          
+          if (loadedSettings.enabled) {
+            autoBackupService.start()
+          }
         }
         const lastSync = localStorage.getItem("auto-sync-last")
         if (lastSync) {
