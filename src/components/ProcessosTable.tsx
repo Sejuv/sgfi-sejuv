@@ -73,27 +73,27 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
         </div>
       </div>
       <div className="overflow-auto flex-1 relative" style={{overflowY: 'scroll', overflowX: 'auto'}}>
-        <Table className="relative">
+        <Table className="relative text-base">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px] sticky left-0 bg-muted/30 z-10">Ano</TableHead>
-              <TableHead className="min-w-[150px]">Secretaria</TableHead>
-              <TableHead className="min-w-[100px]">Setor</TableHead>
-              <TableHead className="min-w-[100px]">Conta</TableHead>
-              <TableHead className="min-w-[140px]">Credor</TableHead>
-              <TableHead className="min-w-[160px]">Objeto</TableHead>
-              <TableHead className="w-[70px]">Mês</TableHead>
-              <TableHead className="w-[110px] text-right">Valor</TableHead>
-              <TableHead className="min-w-[130px]">Recurso</TableHead>
-              <TableHead className="w-[90px]">DID</TableHead>
-              <TableHead className="w-[90px]">NF</TableHead>
-              <TableHead className="w-[95px] text-center">Control.</TableHead>
-              <TableHead className="w-[95px] text-center">Contab.</TableHead>
-              <TableHead className="w-[95px] text-center">Compras</TableHead>
-              <TableHead className="w-[95px] text-center">SEFIN</TableHead>
-              <TableHead className="w-[95px] bg-amber-100 text-center">Tesour.</TableHead>
-              <TableHead className="w-[90px] text-center">Status</TableHead>
-              <TableHead className="w-[140px] text-right sticky right-0 bg-muted/30 z-10">Ações</TableHead>
+              <TableHead className="w-[80px] sticky left-0 bg-muted/30 z-10 text-sm font-semibold">Ano</TableHead>
+              <TableHead className="min-w-[200px] text-sm font-semibold">Secretaria</TableHead>
+              <TableHead className="min-w-[150px] text-sm font-semibold">Setor</TableHead>
+              <TableHead className="min-w-[130px] text-sm font-semibold">Conta</TableHead>
+              <TableHead className="min-w-[200px] text-sm font-semibold">Credor</TableHead>
+              <TableHead className="min-w-[220px] text-sm font-semibold">Objeto</TableHead>
+              <TableHead className="w-[100px] text-sm font-semibold">Mês</TableHead>
+              <TableHead className="w-[140px] text-right text-sm font-semibold">Valor</TableHead>
+              <TableHead className="min-w-[180px] text-sm font-semibold">Recurso</TableHead>
+              <TableHead className="w-[100px] text-sm font-semibold">DID</TableHead>
+              <TableHead className="w-[100px] text-sm font-semibold">NF</TableHead>
+              <TableHead className="w-[110px] text-center text-sm font-semibold">Control.</TableHead>
+              <TableHead className="w-[110px] text-center text-sm font-semibold">Contab.</TableHead>
+              <TableHead className="w-[110px] text-center text-sm font-semibold">Compras</TableHead>
+              <TableHead className="w-[110px] text-center text-sm font-semibold">SEFIN</TableHead>
+              <TableHead className="w-[110px] bg-amber-100 text-center text-sm font-semibold">Tesour.</TableHead>
+              <TableHead className="w-[110px] text-center text-sm font-semibold">Status</TableHead>
+              <TableHead className="w-[180px] text-right sticky right-0 bg-muted/30 z-10 text-sm font-semibold">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -103,7 +103,7 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
               
               return (
                 <TableRow key={processo.id} className={foiDevolvido ? "bg-orange-50/50" : ""}>
-                  <TableCell className="font-medium tabular-nums sticky left-0 bg-background z-10">
+                  <TableCell className="font-medium tabular-nums sticky left-0 bg-background z-10 text-sm">
                     <div className="flex items-center gap-1">
                       {processo.ano}
                       {processo.devolvido && (
@@ -147,44 +147,44 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
                     {formatCurrency(processo.valor)}
                   </TableCell>
                   <TableCell className="text-sm">{processo.recurso}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
+                  <TableCell className="text-sm text-muted-foreground">
                     {processo.did || "-"}
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
+                  <TableCell className="text-sm text-muted-foreground">
                     {processo.nf || "-"}
                   </TableCell>
-                  <TableCell className="text-xs text-center">
+                  <TableCell className="text-sm text-center">
                     {formatDate(processo.dataControladoria)}
                   </TableCell>
-                  <TableCell className="text-xs text-center">
+                  <TableCell className="text-sm text-center">
                     {formatDate(processo.dataContabilidade)}
                   </TableCell>
-                  <TableCell className="text-xs text-center">
+                  <TableCell className="text-sm text-center">
                     {formatDate(processo.dataCompras)}
                   </TableCell>
-                  <TableCell className="text-xs text-center">
+                  <TableCell className="text-sm text-center">
                     {formatDate(processo.dataSefin)}
                   </TableCell>
-                  <TableCell className="text-xs bg-amber-50 text-center">
+                  <TableCell className="text-sm bg-amber-50 text-center">
                     {formatDate(processo.dataTesouraria)}
                   </TableCell>
                   <TableCell className="text-center">
                     {foiDevolvido ? (
-                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 text-xs px-2 py-0">
+                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 text-sm px-3 py-1">
                         Devolvido
                       </Badge>
                     ) : isPendente ? (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs px-2 py-0">
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-sm px-3 py-1">
                         Pend.
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs px-2 py-0">
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-sm px-3 py-1">
                         OK
                       </Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right sticky right-0 bg-background z-10">
-                    <div className="flex gap-0.5 justify-end">
+                    <div className="flex gap-1 justify-end">
                       {foiDevolvido && podeEditar && (
                         <TooltipProvider>
                           <Tooltip>
@@ -192,10 +192,10 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                                 onClick={() => onReceber(processo)}
                               >
-                                <ArrowUDownLeft className="h-3.5 w-3.5" weight="bold" />
+                                <ArrowUDownLeft className="h-4 w-4" weight="bold" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -211,10 +211,10 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                                 onClick={() => onDevolucao(processo)}
                               >
-                                <ArrowUUpLeft className="h-3.5 w-3.5" weight="bold" />
+                                <ArrowUUpLeft className="h-4 w-4" weight="bold" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -227,29 +227,29 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0"
+                          className="h-8 w-8 p-0"
                           onClick={() => onWorkflow(processo)}
                           title="Gerenciar trâmite"
                         >
-                          <CalendarCheck className="h-3.5 w-3.5" />
+                          <CalendarCheck className="h-4 w-4" />
                         </Button>
                       )}
                       {podeEditar && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0"
+                          className="h-8 w-8 p-0"
                           onClick={() => onEdit(processo)}
                           title="Editar processo"
                         >
-                          <PencilSimple className="h-3.5 w-3.5" />
+                          <PencilSimple className="h-4 w-4" />
                         </Button>
                       )}
                       {podeEditar && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0"
+                          className="h-8 w-8 p-0"
                           onClick={() => {
                             if (confirm("Tem certeza que deseja excluir este processo?")) {
                               onDelete(processo.id)
@@ -257,7 +257,7 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
                           }}
                           title="Excluir processo"
                         >
-                          <Trash className="h-3.5 w-3.5" />
+                          <Trash className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
