@@ -8,6 +8,27 @@ const globalUnsubscribers = new Map<string, Unsubscribe>()
 const savingKeys = new Set<string>()
 const loadingPromises = new Map<string, Promise<any>>()
 const lastSaveTimestamp = new Map<string, number>()
+const forceReloadKeys = new Set<string>()
+
+export function forceReloadFirebaseKey(key: string) {
+  console.log(`🔄 [${key}] Forçando recarregamento`)
+  forceReloadKeys.add(key)
+  globalCache.delete(key)
+  loadingPromises.delete(key)
+  
+  const listeners = globalListeners.get(key)
+  if (listeners && listeners.size > 0) {
+    loadFromFirestore(key, null).then((data) => {
+      console.log(`✅ [${key}] Dados recarregados`, { hasData: !!data, size: Array.isArray(data) ? data.length : 'N/A' })
+      globalCache.set(key, data)
+      listeners.forEach(listener => listener(data))
+      forceReloadKeys.delete(key)
+    }).catch((error) => {
+      console.error(`❌ [${key}] Erro ao recarregar:`, error)
+      forceReloadKeys.delete(key)
+    })
+  }
+}
 
 export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void] {
   const defaultValueRef = useRef<T>(defaultValue)

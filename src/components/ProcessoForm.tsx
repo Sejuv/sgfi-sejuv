@@ -8,7 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CurrencyInput } from "@/components/CurrencyInput"
 import { useState, useEffect, useMemo, useRef } from "react"
-import { useFirebaseKV } from "@/hooks/useFirebaseKV"
+import { useFirebaseKV, forceReloadFirebaseKey } from "@/hooks/useFirebaseKV"
 import { Check, CaretUpDown } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -81,6 +81,19 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
   const recursoRef = useRef<HTMLButtonElement>(null)
   const didRef = useRef<HTMLInputElement>(null)
   const nfRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (open) {
+      console.log("🔄 Forçando recarregamento de todos os cadastros...")
+      forceReloadFirebaseKey("cadastro-credores")
+      forceReloadFirebaseKey("cadastro-recursos")
+      forceReloadFirebaseKey("cadastro-contas")
+      forceReloadFirebaseKey("cadastro-objetos")
+      forceReloadFirebaseKey("cadastro-secretarias")
+      forceReloadFirebaseKey("cadastro-setores")
+      forceReloadFirebaseKey("cadastro-meses")
+    }
+  }, [open])
 
   useEffect(() => {
     if (processo) {
@@ -299,16 +312,27 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
               required
             >
               <SelectTrigger ref={contaRef} id="conta">
-                <SelectValue placeholder="Selecione o tipo de conta" />
+                <SelectValue placeholder={contasAtivas.length === 0 ? "Nenhuma conta cadastrada" : "Selecione o tipo de conta"} />
               </SelectTrigger>
               <SelectContent>
-                {contasAtivas.map((tipo) => (
-                  <SelectItem key={tipo.id} value={tipo.tipo}>
-                    {tipo.tipo}
-                  </SelectItem>
-                ))}
+                {contasAtivas.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground text-center">
+                    Nenhuma conta ativa cadastrada
+                  </div>
+                ) : (
+                  contasAtivas.map((tipo) => (
+                    <SelectItem key={tipo.id} value={tipo.tipo}>
+                      {tipo.tipo}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {contasAtivas.length === 0 && (
+              <p className="text-xs text-amber-600">
+                Cadastre contas na aba Cadastros antes de criar um processo
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -322,16 +346,27 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
               required
             >
               <SelectTrigger ref={credorRef} id="credor">
-                <SelectValue placeholder="Selecione o credor" />
+                <SelectValue placeholder={credoresAtivos.length === 0 ? "Nenhum credor cadastrado" : "Selecione o credor"} />
               </SelectTrigger>
               <SelectContent>
-                {credoresAtivos.map((credor) => (
-                  <SelectItem key={credor.id} value={credor.nome}>
-                    {credor.nome} ({credor.tipo === "Pessoa Física" ? "CPF" : "CNPJ"}: {credor.cpfCnpj})
-                  </SelectItem>
-                ))}
+                {credoresAtivos.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground text-center">
+                    Nenhum credor ativo cadastrado
+                  </div>
+                ) : (
+                  credoresAtivos.map((credor) => (
+                    <SelectItem key={credor.id} value={credor.nome}>
+                      {credor.nome} ({credor.tipo === "Pessoa Física" ? "CPF" : "CNPJ"}: {credor.cpfCnpj})
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {credoresAtivos.length === 0 && (
+              <p className="text-xs text-amber-600">
+                Cadastre credores na aba Cadastros antes de criar um processo
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -345,17 +380,28 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
               required
             >
               <SelectTrigger ref={objetoRef} id="objeto">
-                <SelectValue placeholder="Selecione o objeto" />
+                <SelectValue placeholder={objetosAtivos.length === 0 ? "Nenhum objeto cadastrado" : "Selecione o objeto"} />
               </SelectTrigger>
               <SelectContent>
-                {objetosAtivos.map((objeto) => (
-                  <SelectItem key={objeto.id} value={objeto.descricao}>
-                    {objeto.descricao}
-                    {objeto.categoria && <span className="text-xs text-muted-foreground ml-2">({objeto.categoria})</span>}
-                  </SelectItem>
-                ))}
+                {objetosAtivos.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground text-center">
+                    Nenhum objeto ativo cadastrado
+                  </div>
+                ) : (
+                  objetosAtivos.map((objeto) => (
+                    <SelectItem key={objeto.id} value={objeto.descricao}>
+                      {objeto.descricao}
+                      {objeto.categoria && <span className="text-xs text-muted-foreground ml-2">({objeto.categoria})</span>}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {objetosAtivos.length === 0 && (
+              <p className="text-xs text-amber-600">
+                Cadastre objetos na aba Cadastros antes de criar um processo
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -432,16 +478,27 @@ export function ProcessoForm({ open, onOpenChange, processo, onSave }: ProcessoF
               required
             >
               <SelectTrigger ref={recursoRef} id="recurso">
-                <SelectValue placeholder="Selecione o recurso" />
+                <SelectValue placeholder={recursosAtivos.length === 0 ? "Nenhum recurso cadastrado" : "Selecione o recurso"} />
               </SelectTrigger>
               <SelectContent>
-                {recursosAtivos.map((rec) => (
-                  <SelectItem key={rec.id} value={rec.nome}>
-                    {rec.nome}
-                  </SelectItem>
-                ))}
+                {recursosAtivos.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground text-center">
+                    Nenhum recurso ativo cadastrado
+                  </div>
+                ) : (
+                  recursosAtivos.map((rec) => (
+                    <SelectItem key={rec.id} value={rec.nome}>
+                      {rec.nome}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {recursosAtivos.length === 0 && (
+              <p className="text-xs text-amber-600">
+                Cadastre recursos na aba Cadastros antes de criar um processo
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
