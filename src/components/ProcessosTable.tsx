@@ -73,27 +73,27 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
         </div>
       </div>
       <div className="overflow-auto flex-1 relative" style={{overflowY: 'scroll', overflowX: 'auto'}}>
-        <Table className="relative text-base">
+        <Table className="relative text-sm w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[90px] sticky left-0 bg-muted/30 z-10 text-base font-semibold">Ano</TableHead>
-              <TableHead className="min-w-[220px] text-base font-semibold">Secretaria</TableHead>
-              <TableHead className="min-w-[170px] text-base font-semibold">Setor</TableHead>
-              <TableHead className="min-w-[150px] text-base font-semibold">Conta</TableHead>
-              <TableHead className="min-w-[240px] text-base font-semibold">Credor</TableHead>
-              <TableHead className="min-w-[260px] text-base font-semibold">Objeto</TableHead>
-              <TableHead className="w-[120px] text-base font-semibold">Mês</TableHead>
-              <TableHead className="w-[150px] text-right text-base font-semibold">Valor</TableHead>
-              <TableHead className="min-w-[200px] text-base font-semibold">Recurso</TableHead>
-              <TableHead className="w-[120px] text-base font-semibold">DID</TableHead>
-              <TableHead className="w-[120px] text-base font-semibold">NF</TableHead>
-              <TableHead className="w-[130px] text-center text-base font-semibold">Control.</TableHead>
-              <TableHead className="w-[130px] text-center text-base font-semibold">Contab.</TableHead>
-              <TableHead className="w-[130px] text-center text-base font-semibold">Compras</TableHead>
-              <TableHead className="w-[130px] text-center text-base font-semibold">SEFIN</TableHead>
-              <TableHead className="w-[130px] bg-amber-100 text-center text-base font-semibold">Tesour.</TableHead>
-              <TableHead className="w-[130px] text-center text-base font-semibold">Status</TableHead>
-              <TableHead className="w-[200px] text-right sticky right-0 bg-muted/30 z-10 text-base font-semibold">Ações</TableHead>
+              <TableHead className="w-[70px] sticky left-0 bg-muted/30 z-10 text-sm font-semibold">Ano</TableHead>
+              <TableHead className="w-[150px] text-sm font-semibold">Secretaria</TableHead>
+              <TableHead className="w-[120px] text-sm font-semibold">Setor</TableHead>
+              <TableHead className="w-[100px] text-sm font-semibold">Conta</TableHead>
+              <TableHead className="w-[180px] text-sm font-semibold">Credor</TableHead>
+              <TableHead className="w-[200px] text-sm font-semibold">Objeto</TableHead>
+              <TableHead className="w-[80px] text-sm font-semibold">Mês</TableHead>
+              <TableHead className="w-[120px] text-right text-sm font-semibold">Valor</TableHead>
+              <TableHead className="w-[140px] text-sm font-semibold">Recurso</TableHead>
+              <TableHead className="w-[90px] text-sm font-semibold">DID</TableHead>
+              <TableHead className="w-[90px] text-sm font-semibold">NF</TableHead>
+              <TableHead className="w-[100px] text-center text-sm font-semibold">Control.</TableHead>
+              <TableHead className="w-[100px] text-center text-sm font-semibold">Contab.</TableHead>
+              <TableHead className="w-[100px] text-center text-sm font-semibold">Compras</TableHead>
+              <TableHead className="w-[100px] text-center text-sm font-semibold">SEFIN</TableHead>
+              <TableHead className="w-[100px] bg-amber-100 text-center text-sm font-semibold">Tesour.</TableHead>
+              <TableHead className="w-[100px] text-center text-sm font-semibold">Status</TableHead>
+              <TableHead className="w-[160px] text-right sticky right-0 bg-muted/30 z-10 text-sm font-semibold">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -103,7 +103,7 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
               
               return (
                 <TableRow key={processo.id} className={foiDevolvido ? "bg-orange-50/50" : ""}>
-                  <TableCell className="font-medium tabular-nums sticky left-0 bg-background z-10 text-base">
+                  <TableCell className="font-medium tabular-nums sticky left-0 bg-background z-10 text-sm">
                     <div className="flex items-center gap-1">
                       {processo.ano}
                       {processo.devolvido && (
@@ -111,7 +111,7 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <WarningCircle 
-                                className="h-5 w-5 text-orange-600" 
+                                className="h-4 w-4 text-orange-600" 
                                 weight="fill"
                               />
                             </TooltipTrigger>
@@ -137,54 +137,54 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-base">{processo.secretaria}</TableCell>
-                  <TableCell className="text-base">{processo.setor}</TableCell>
-                  <TableCell className="text-base">{processo.conta}</TableCell>
-                  <TableCell className="font-medium text-base">{processo.credor}</TableCell>
-                  <TableCell className="text-base">{processo.objeto}</TableCell>
-                  <TableCell className="text-base">{processo.mes}</TableCell>
-                  <TableCell className="text-right font-semibold tabular-nums text-base">
+                  <TableCell className="text-sm truncate" title={processo.secretaria}>{processo.secretaria}</TableCell>
+                  <TableCell className="text-sm truncate" title={processo.setor}>{processo.setor}</TableCell>
+                  <TableCell className="text-sm truncate" title={processo.conta}>{processo.conta}</TableCell>
+                  <TableCell className="font-medium text-sm truncate" title={processo.credor}>{processo.credor}</TableCell>
+                  <TableCell className="text-sm truncate" title={processo.objeto}>{processo.objeto}</TableCell>
+                  <TableCell className="text-sm">{processo.mes}</TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums text-sm">
                     {formatCurrency(processo.valor)}
                   </TableCell>
-                  <TableCell className="text-base">{processo.recurso}</TableCell>
-                  <TableCell className="text-base text-muted-foreground">
+                  <TableCell className="text-sm truncate" title={processo.recurso}>{processo.recurso}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {processo.did || "-"}
                   </TableCell>
-                  <TableCell className="text-base text-muted-foreground">
+                  <TableCell className="text-sm text-muted-foreground">
                     {processo.nf || "-"}
                   </TableCell>
-                  <TableCell className="text-base text-center">
+                  <TableCell className="text-xs text-center">
                     {formatDate(processo.dataControladoria)}
                   </TableCell>
-                  <TableCell className="text-base text-center">
+                  <TableCell className="text-xs text-center">
                     {formatDate(processo.dataContabilidade)}
                   </TableCell>
-                  <TableCell className="text-base text-center">
+                  <TableCell className="text-xs text-center">
                     {formatDate(processo.dataCompras)}
                   </TableCell>
-                  <TableCell className="text-base text-center">
+                  <TableCell className="text-xs text-center">
                     {formatDate(processo.dataSefin)}
                   </TableCell>
-                  <TableCell className="text-base bg-amber-50 text-center">
+                  <TableCell className="text-xs bg-amber-50 text-center">
                     {formatDate(processo.dataTesouraria)}
                   </TableCell>
                   <TableCell className="text-center">
                     {foiDevolvido ? (
-                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 text-sm font-medium px-3 py-1.5">
-                        Devolvido
+                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 text-xs font-medium px-2 py-0.5">
+                        Dev.
                       </Badge>
                     ) : isPendente ? (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-sm font-medium px-3 py-1.5">
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs font-medium px-2 py-0.5">
                         Pend.
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-sm font-medium px-3 py-1.5">
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs font-medium px-2 py-0.5">
                         OK
                       </Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right sticky right-0 bg-background z-10">
-                    <div className="flex gap-1 justify-end">
+                    <div className="flex gap-0.5 justify-end">
                       {foiDevolvido && podeEditar && (
                         <TooltipProvider>
                           <Tooltip>
@@ -192,14 +192,14 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-9 w-9 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                                 onClick={() => onReceber(processo)}
                               >
-                                <ArrowUDownLeft className="h-4.5 w-4.5" weight="bold" />
+                                <ArrowUDownLeft className="h-3.5 w-3.5" weight="bold" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Receber processo novamente</p>
+                              <p>Receber novamente</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -211,54 +211,78 @@ export function ProcessosTable({ processos, onEdit, onDelete, onWorkflow, onDevo
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-9 w-9 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                className="h-7 w-7 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                                 onClick={() => onDevolucao(processo)}
                               >
-                                <ArrowUUpLeft className="h-4.5 w-4.5" weight="bold" />
+                                <ArrowUUpLeft className="h-3.5 w-3.5" weight="bold" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Devolver processo</p>
+                              <p>Devolver</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       )}
                       {podeEditar && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 w-9 p-0"
-                          onClick={() => onWorkflow(processo)}
-                          title="Gerenciar trâmite"
-                        >
-                          <CalendarCheck className="h-4.5 w-4.5" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => onWorkflow(processo)}
+                              >
+                                <CalendarCheck className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Trâmite</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                       {podeEditar && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 w-9 p-0"
-                          onClick={() => onEdit(processo)}
-                          title="Editar processo"
-                        >
-                          <PencilSimple className="h-4.5 w-4.5" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => onEdit(processo)}
+                              >
+                                <PencilSimple className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Editar</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                       {podeEditar && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 w-9 p-0"
-                          onClick={() => {
-                            if (confirm("Tem certeza que deseja excluir este processo?")) {
-                              onDelete(processo.id)
-                            }
-                          }}
-                          title="Excluir processo"
-                        >
-                          <Trash className="h-4.5 w-4.5" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => {
+                                  if (confirm("Tem certeza que deseja excluir este processo?")) {
+                                    onDelete(processo.id)
+                                  }
+                                }}
+                              >
+                                <Trash className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Excluir</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                   </TableCell>
