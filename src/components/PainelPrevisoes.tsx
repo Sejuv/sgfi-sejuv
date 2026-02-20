@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ChartLineUp, TrendUp, TrendDown, CalendarBlank, CurrencyDollar, Funnel, ChartLine } from "@phosphor-icons/react"
+import { ChartLineUp, TrendUp, TrendDown, CalendarBlank, CurrencyDollar, Funnel, ChartLine, X } from "@phosphor-icons/react"
 import { ProcessoDespesa } from "@/lib/types"
 import { Credor } from "@/lib/cadastros-types"
 import { Recurso, Objeto, Secretaria } from "@/lib/cadastros-types"
@@ -42,7 +42,15 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
   const [filtroRecurso, setFiltroRecurso] = useState<string>("todos")
   const [filtroObjeto, setFiltroObjeto] = useState<string>("todos")
   const [filtroSecretaria, setFiltroSecretaria] = useState<string>("todos")
+  const [filtroTipoConta, setFiltroTipoConta] = useState<string>("todos")
   const [anoBase, setAnoBase] = useState<string>(new Date().getFullYear().toString())
+
+  // Paleta de cores para os gráficos
+  const coresGrafico = [
+    "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+    "#06b6d4", "#ec4899", "#14b8a6", "#f97316", "#6366f1",
+    "#84cc16", "#f43f5e", "#22d3ee", "#a855f7", "#eab308"
+  ]
 
   // Função para calcular o número de meses no período
   const getMesesPorPeriodo = (periodo: PeriodoPrevisao): number => {
@@ -76,16 +84,51 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
     return grupos
   }
 
+  // Tipos de conta únicos (extraídos diretamente dos processos)
+  const tiposConta = useMemo(() => {
+    const tipos = [...new Set(processos.map(p => p.conta).filter(Boolean))]
+    return tipos.sort()
+  }, [processos])
+
   // Processos filtrados
   const processosFiltrados = useMemo(() => {
     return processos.filter((p) => {
-      if (filtroCredor !== "todos" && p.credor !== filtroCredor) return false
-      if (filtroRecurso !== "todos" && p.recurso !== filtroRecurso) return false
-      if (filtroObjeto !== "todos" && p.objeto !== filtroObjeto) return false
-      if (filtroSecretaria !== "todos" && p.secretaria !== filtroSecretaria) return false
+      // Filtro por credor (compara pelo nome)
+      if (filtroCredor !== "todos" && credores && credores.length > 0) {
+        const credorSelecionado = credores.find(c => c.id === filtroCredor)
+        if (credorSelecionado && p.credor !== credorSelecionado.nome) {
+          return false
+        }
+      }
+      // Filtro por recurso (compara pelo nome)
+      if (filtroRecurso !== "todos" && recursos && recursos.length > 0) {
+        const recursoSelecionado = recursos.find(r => r.id === filtroRecurso)
+        if (recursoSelecionado && p.recurso !== recursoSelecionado.nome) {
+          return false
+        }
+      }
+      // Filtro por objeto (compara pela descrição)
+      if (filtroObjeto !== "todos" && objetos && objetos.length > 0) {
+        const objetoSelecionado = objetos.find(o => o.id === filtroObjeto)
+        if (objetoSelecionado && p.objeto !== objetoSelecionado.descricao) {
+          return false
+        }
+      }
+      // Filtro por secretaria (compara pelo nome)
+      if (filtroSecretaria !== "todos" && secretarias && secretarias.length > 0) {
+        const secretariaSelecionada = secretarias.find(s => s.id === filtroSecretaria)
+        if (secretariaSelecionada && p.secretaria !== secretariaSelecionada.nome) {
+          return false
+        }
+      }
+      // Filtro por tipo de conta (compara direto)
+      if (filtroTipoConta !== "todos" && p.conta !== filtroTipoConta) {
+        return false
+      }
+      
       return true
     })
-  }, [processos, filtroCredor, filtroRecurso, filtroObjeto, filtroSecretaria])
+  }, [processos, filtroCredor, filtroRecurso, filtroObjeto, filtroSecretaria, filtroTipoConta, credores, recursos, objetos, secretarias])
 
   // Calcular previsões baseadas no tipo de análise
   const previsoes = useMemo((): PrevisaoDespesa[] => {
@@ -250,6 +293,38 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
     }
   }
 
+  const limparFiltros = () => {
+    setFiltroCredor("todos")
+    setFiltroRecurso("todos")
+    setFiltroObjeto("todos")
+    setFiltroSecretaria("todos")
+    setFiltroTipoConta("todos")
+  }
+
+  const filtrosAtivos = useMemo(() => {
+    const ativos = []
+    if (filtroCredor !== "todos") {
+      const credor = credores?.find(c => c.id === filtroCredor)
+      ativos.push({ tipo: "Credor", nome: credor?.nome || filtroCredor })
+    }
+    if (filtroRecurso !== "todos") {
+      const recurso = recursos?.find(r => r.id === filtroRecurso)
+      ativos.push({ tipo: "Recurso", nome: recurso?.nome || filtroRecurso })
+    }
+    if (filtroObjeto !== "todos") {
+      const objeto = objetos?.find(o => o.id === filtroObjeto)
+      ativos.push({ tipo: "Objeto", nome: objeto?.descricao || filtroObjeto })
+    }
+    if (filtroSecretaria !== "todos") {
+      const secretaria = secretarias?.find(s => s.id === filtroSecretaria)
+      ativos.push({ tipo: "Secretaria", nome: secretaria?.nome || filtroSecretaria })
+    }
+    if (filtroTipoConta !== "todos") {
+      ativos.push({ tipo: "Tipo Conta", nome: filtroTipoConta })
+    }
+    return ativos
+  }, [filtroCredor, filtroRecurso, filtroObjeto, filtroSecretaria, filtroTipoConta, credores, recursos, objetos, secretarias])
+
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -338,9 +413,7 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div className="space-y-2">
                 <Label>Filtrar por Recurso</Label>
                 <Select value={filtroRecurso} onValueChange={setFiltroRecurso}>
@@ -370,9 +443,57 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label>Filtrar por Tipo de Conta</Label>
+                <Select value={filtroTipoConta} onValueChange={setFiltroTipoConta}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {tiposConta.map((tipo) => (
+                      <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Filtros Ativos */}
+        {filtrosAtivos.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-muted-foreground">Filtros ativos:</span>
+            {filtrosAtivos.map((filtro, idx) => (
+              <Badge key={idx} variant="secondary" className="gap-1.5">
+                <span className="font-semibold">{filtro.tipo}:</span>
+                <span>{filtro.nome}</span>
+              </Badge>
+            ))}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={limparFiltros}
+              className="h-7 text-xs gap-1"
+            >
+              <X className="h-3.5 w-3.5" weight="bold" />
+              Limpar filtros
+            </Button>
+          </div>
+        )}
+
+        {/* Indicador de Processos Analisados */}
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg border">
+          <CalendarBlank className="h-4 w-4 text-muted-foreground" weight="duotone" />
+          <span className="text-sm text-muted-foreground">
+            Analisando <span className="font-semibold text-foreground">{processosFiltrados.length}</span> processos
+            {filtrosAtivos.length > 0 && (
+              <span> ({processos.length} no total)</span>
+            )}
+          </span>
+        </div>
 
         {/* Cards de Estatísticas Gerais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -470,98 +591,140 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
                 <TabsContent value="tendencia" className="mt-6">
                   <ResponsiveContainer width="100%" height={350}>
                     <LineChart data={(() => {
-                      const dados = previsoes[0].historicoValores.map((valor, idx) => ({
-                        periodo: `P${idx + 1}`,
-                        real: valor,
-                      }))
-                      // Adiciona previsão como último ponto
-                      dados.push({
-                        periodo: `P${dados.length + 1} (Prev)`,
-                        real: previsoes[0].previsaoProximoPeriodo,
+                      // Criar estrutura de dados para múltiplas linhas
+                      const maxPeriodos = Math.max(...previsoes.map(p => p.historicoValores.length))
+                      const dados: any[] = []
+                      
+                      for (let i = 0; i < maxPeriodos; i++) {
+                        const ponto: any = { periodo: `P${i + 1}` }
+                        previsoes.slice(0, 5).forEach((prev, idx) => {
+                          ponto[prev.nome] = prev.historicoValores[i] || 0
+                        })
+                        dados.push(ponto)
+                      }
+                      
+                      // Adicionar ponto de previsão
+                      const pontoPrevisao: any = { periodo: `P${maxPeriodos + 1} (Prev)` }
+                      previsoes.slice(0, 5).forEach((prev) => {
+                        pontoPrevisao[prev.nome] = prev.previsaoProximoPeriodo
                       })
+                      dados.push(pontoPrevisao)
+                      
                       return dados
                     })()}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis dataKey="periodo" className="text-xs" />
                       <YAxis className="text-xs" tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
                       <Tooltip 
-                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
+                        formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                         contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
                       />
                       <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="real" 
-                        stroke="hsl(var(--primary))" 
-                        strokeWidth={2}
-                        name="Despesa"
-                        dot={{ fill: 'hsl(var(--primary))' }}
-                      />
+                      {previsoes.slice(0, 5).map((prev, idx) => (
+                        <Line 
+                          key={prev.nome}
+                          type="monotone" 
+                          dataKey={prev.nome}
+                          stroke={coresGrafico[idx % coresGrafico.length]}
+                          strokeWidth={2}
+                          name={prev.nome.length > 25 ? prev.nome.substring(0, 25) + '...' : prev.nome}
+                          dot={{ fill: coresGrafico[idx % coresGrafico.length], r: 4 }}
+                          animationDuration={1500}
+                          animationBegin={idx * 100}
+                        />
+                      ))}
                     </LineChart>
                   </ResponsiveContainer>
                   <p className="text-sm text-muted-foreground text-center mt-4">
-                    Linha de tendência mostrando valores históricos e previsão do próximo período
+                    Linha de tendência mostrando valores históricos e previsão do próximo período {previsoes.length > 5 ? '(Top 5)' : ''}
                   </p>
                 </TabsContent>
 
                 <TabsContent value="comparativo" className="mt-6">
                   <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={previsoes.map(prev => ({
+                    <BarChart data={previsoes.slice(0, 8).map(prev => ({
                       nome: prev.nome.length > 20 ? prev.nome.substring(0, 20) + '...' : prev.nome,
                       'Média Histórica': prev.mediaHistorica,
                       'Previsão': prev.previsaoProximoPeriodo,
                     }))}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="nome" className="text-xs" />
+                      <XAxis dataKey="nome" className="text-xs" angle={-15} textAnchor="end" height={80} />
                       <YAxis className="text-xs" tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
                       <Tooltip 
-                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`]}
+                        formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                         contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
                       />
                       <Legend />
-                      <Bar dataKey="Média Histórica" fill="hsl(var(--muted-foreground))" />
-                      <Bar dataKey="Previsão" fill="hsl(var(--primary))" />
+                      <Bar 
+                        dataKey="Média Histórica" 
+                        fill="#8b5cf6" 
+                        radius={[8, 8, 0, 0]}
+                        animationDuration={1200}
+                      />
+                      <Bar 
+                        dataKey="Previsão" 
+                        fill="#3b82f6" 
+                        radius={[8, 8, 0, 0]}
+                        animationDuration={1200}
+                        animationBegin={300}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                   <p className="text-sm text-muted-foreground text-center mt-4">
-                    Comparação entre média histórica e previsão para o próximo período
+                    Comparação entre média histórica e previsão para o próximo período {previsoes.length > 8 ? '(Top 8)' : ''}
                   </p>
                 </TabsContent>
 
                 <TabsContent value="evolucao" className="mt-6">
                   <ResponsiveContainer width="100%" height={350}>
                     <AreaChart data={(() => {
-                      const dados = previsoes[0].historicoValores.map((valor, idx) => ({
-                        periodo: `P${idx + 1}`,
-                        valor: valor,
-                      }))
-                      // Adiciona previsão
-                      dados.push({
-                        periodo: `P${dados.length + 1} (Prev)`,
-                        valor: previsoes[0].previsaoProximoPeriodo,
+                      // Criar estrutura de dados para múltiplas áreas
+                      const maxPeriodos = Math.max(...previsoes.map(p => p.historicoValores.length))
+                      const dados: any[] = []
+                      
+                      for (let i = 0; i < maxPeriodos; i++) {
+                        const ponto: any = { periodo: `P${i + 1}` }
+                        previsoes.slice(0, 4).forEach((prev) => {
+                          ponto[prev.nome] = prev.historicoValores[i] || 0
+                        })
+                        dados.push(ponto)
+                      }
+                      
+                      // Adicionar ponto de previsão
+                      const pontoPrevisao: any = { periodo: `P${maxPeriodos + 1} (Prev)` }
+                      previsoes.slice(0, 4).forEach((prev) => {
+                        pontoPrevisao[prev.nome] = prev.previsaoProximoPeriodo
                       })
+                      dados.push(pontoPrevisao)
+                      
                       return dados
                     })()}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis dataKey="periodo" className="text-xs" />
                       <YAxis className="text-xs" tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
                       <Tooltip 
-                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Despesa']}
+                        formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                         contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
                       />
                       <Legend />
-                      <Area 
-                        type="monotone" 
-                        dataKey="valor" 
-                        stroke="hsl(var(--primary))" 
-                        fill="hsl(var(--primary))" 
-                        fillOpacity={0.3}
-                        name="Evolução das Despesas"
-                      />
+                      {previsoes.slice(0, 4).map((prev, idx) => (
+                        <Area 
+                          key={prev.nome}
+                          type="monotone" 
+                          dataKey={prev.nome}
+                          stackId="1"
+                          stroke={coresGrafico[idx % coresGrafico.length]}
+                          fill={coresGrafico[idx % coresGrafico.length]}
+                          fillOpacity={0.6}
+                          name={prev.nome.length > 25 ? prev.nome.substring(0, 25) + '...' : prev.nome}
+                          animationDuration={1500}
+                          animationBegin={idx * 150}
+                        />
+                      ))}
                     </AreaChart>
                   </ResponsiveContainer>
                   <p className="text-sm text-muted-foreground text-center mt-4">
-                    Evolução temporal das despesas com área preenchida
+                    Evolução temporal das despesas com áreas empilhadas {previsoes.length > 4 ? '(Top 4)' : ''}
                   </p>
                 </TabsContent>
               </Tabs>
