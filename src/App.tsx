@@ -120,6 +120,8 @@ function App() {
       if (filtros.mes && processo.mes !== filtros.mes) return false
       if (filtros.recurso && processo.recurso !== filtros.recurso) return false
       if (filtros.credor && processo.credor !== filtros.credor) return false
+      if (filtros.objeto && processo.objeto !== filtros.objeto) return false
+      if (filtros.tipoConta && processo.conta !== filtros.tipoConta) return false
       if (filtros.did && (!processo.did || !processo.did.toLowerCase().includes(filtros.did.toLowerCase()))) return false
       if (filtros.nf && (!processo.nf || !processo.nf.toLowerCase().includes(filtros.nf.toLowerCase()))) return false
       if (filtros.apenaspendentes && processo.dataTesouraria) return false
@@ -500,7 +502,7 @@ function App() {
               </div>
 
               <div className="shrink-0">
-                <FiltrosPanel filtros={filtros} onFiltrosChange={setFiltros} />
+                <FiltrosPanel filtros={filtros} onFiltrosChange={setFiltros} processos={processosArray} />
               </div>
             </>
           )}

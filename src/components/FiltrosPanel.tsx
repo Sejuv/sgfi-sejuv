@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Secretaria, Recurso, Credor } from "@/lib/cadastros-types"
+import { Secretaria, Recurso, Credor, Objeto } from "@/lib/cadastros-types"
+import { ProcessoDespesa } from "@/lib/types"
 import { MESES } from "@/lib/constants"
 import { Funnel, X } from "@phosphor-icons/react"
 
@@ -16,6 +17,8 @@ export interface Filtros {
   mes?: string
   recurso?: string
   credor?: string
+  objeto?: string
+  tipoConta?: string
   did?: string
   nf?: string
   apenaspendentes: boolean
@@ -24,12 +27,20 @@ export interface Filtros {
 interface FiltrosPanelProps {
   filtros: Filtros
   onFiltrosChange: (filtros: Filtros) => void
+  processos?: ProcessoDespesa[]
 }
 
-export function FiltrosPanel({ filtros, onFiltrosChange }: FiltrosPanelProps) {
+export function FiltrosPanel({ filtros, onFiltrosChange, processos }: FiltrosPanelProps) {
   const [secretarias] = useFirebaseKV<Secretaria[]>("cadastro-secretarias", [])
   const [recursos] = useFirebaseKV<Recurso[]>("cadastro-recursos", [])
   const [credores] = useFirebaseKV<Credor[]>("cadastro-credores", [])
+  const [objetos] = useFirebaseKV<Objeto[]>("cadastro-objetos", [])
+
+  const tiposContaDisponiveis = useMemo(() => {
+    if (!processos || processos.length === 0) return []
+    const tipos = [...new Set(processos.map(p => p.conta).filter(Boolean))]
+    return tipos.sort()
+  }, [processos])
 
   const anosDisponiveis = useMemo(() => {
     const anoAtual = new Date().getFullYear()
@@ -52,13 +63,17 @@ export function FiltrosPanel({ filtros, onFiltrosChange }: FiltrosPanelProps) {
     return [...(credores || [])].filter(c => c.ativo).sort((a, b) => a.nome.localeCompare(b.nome))
   }, [credores])
 
+  const objetosOrdenados = useMemo(() => {
+    return [...(objetos || [])].filter(o => o.ativo).sort((a, b) => a.descricao.localeCompare(b.descricao))
+  }, [objetos])
+
   const limparFiltros = () => {
     onFiltrosChange({
       apenaspendentes: false,
     })
   }
 
-  const temFiltrosAtivos = filtros.ano || filtros.secretaria || filtros.mes || filtros.recurso || filtros.credor || filtros.did || filtros.nf || filtros.apenaspendentes
+  const temFiltrosAtivos = filtros.ano || filtros.secretaria || filtros.mes || filtros.recurso || filtros.credor || filtros.objeto || filtros.tipoConta || filtros.did || filtros.nf || filtros.apenaspendentes
 
   return (
     <Card className="p-3">
@@ -75,7 +90,7 @@ export function FiltrosPanel({ filtros, onFiltrosChange }: FiltrosPanelProps) {
         )}
       </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-2">
         <div className="space-y-1">
           <Label htmlFor="filtro-ano" className="text-xs">Ano</Label>
           <Select
@@ -180,6 +195,50 @@ export function FiltrosPanel({ filtros, onFiltrosChange }: FiltrosPanelProps) {
               {credoresOrdenados.map((credor) => (
                 <SelectItem key={credor.id} value={credor.nome}>
                   {credor.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="filtro-objeto" className="text-xs">Objeto</Label>
+          <Select
+            value={filtros.objeto || "todos"}
+            onValueChange={(value) =>
+              onFiltrosChange({ ...filtros, objeto: value === "todos" ? undefined : value })
+            }
+          >
+            <SelectTrigger id="filtro-objeto">
+              <SelectValue placeholder="Todos os objetos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os objetos</SelectItem>
+              {objetosOrdenados.map((objeto) => (
+                <SelectItem key={objeto.id} value={objeto.descricao}>
+                  {objeto.descricao}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="filtro-tipo-conta" className="text-xs">Tipo de Conta</Label>
+          <Select
+            value={filtros.tipoConta || "todos"}
+            onValueChange={(value) =>
+              onFiltrosChange({ ...filtros, tipoConta: value === "todos" ? undefined : value })
+            }
+          >
+            <SelectTrigger id="filtro-tipo-conta">
+              <SelectValue placeholder="Todos os tipos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
+              {tiposContaDisponiveis.map((tipo) => (
+                <SelectItem key={tipo} value={tipo}>
+                  {tipo}
                 </SelectItem>
               ))}
             </SelectContent>
