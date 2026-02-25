@@ -399,9 +399,12 @@ function App() {
     setWorkflowOpen(true)
   }
 
-  const handleSaveWorkflow = (processoAtualizado: ProcessoDespesa) => {
+  const handleSaveWorkflow = (processoAtualizado: ProcessoDespesa, silent = false) => {
     setProcessos((current) => (current || []).map((p) => (p.id === processoAtualizado.id ? processoAtualizado : p)))
-    toast.success("Trâmite atualizado com sucesso")
+    setProcessoWorkflow((current) => (current?.id === processoAtualizado.id ? processoAtualizado : current))
+    if (!silent) {
+      toast.success("Trâmite atualizado com sucesso")
+    }
   }
 
   const handleImportProcessos = (processosImportados: Omit<ProcessoDespesa, "id">[]) => {

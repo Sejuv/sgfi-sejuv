@@ -15,7 +15,7 @@ interface WorkflowDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   processo: ProcessoDespesa
-  onSave: (processo: ProcessoDespesa) => void
+  onSave: (processo: ProcessoDespesa, silent?: boolean) => void
 }
 
 const ETAPAS = [
@@ -62,18 +62,26 @@ export function WorkflowDialog({ open, onOpenChange, processo, onSave }: Workflo
   }, [processo])
 
   const handleSave = () => {
-    onSave({ ...processo, ...datas })
+    onSave({ ...processo, ...datas }, false)
     onOpenChange(false)
   }
 
+  const persistDatas = (nextDatas: typeof datas) => {
+    onSave({ ...processo, ...nextDatas }, true)
+  }
+
   const setData = (key: keyof typeof datas, date: Date | undefined) => {
-    setDatas({ ...datas, [key]: date ? date.toISOString() : undefined })
+    const nextDatas = { ...datas, [key]: date ? date.toISOString() : undefined }
+    setDatas(nextDatas)
     setInputValues({ ...inputValues, [key]: date ? format(date, "dd/MM/yyyy") : "" })
+    persistDatas(nextDatas)
   }
 
   const limparData = (key: keyof typeof datas) => {
-    setDatas({ ...datas, [key]: undefined })
+    const nextDatas = { ...datas, [key]: undefined }
+    setDatas(nextDatas)
     setInputValues({ ...inputValues, [key]: "" })
+    persistDatas(nextDatas)
   }
 
   const handleInputChange = (key: keyof typeof datas, value: string) => {
@@ -82,10 +90,14 @@ export function WorkflowDialog({ open, onOpenChange, processo, onSave }: Workflo
     if (value.length === 10) {
       const parsedDate = parse(value, "dd/MM/yyyy", new Date())
       if (isValid(parsedDate)) {
-        setDatas({ ...datas, [key]: parsedDate.toISOString() })
+        const nextDatas = { ...datas, [key]: parsedDate.toISOString() }
+        setDatas(nextDatas)
+        persistDatas(nextDatas)
       }
     } else if (value === "") {
-      setDatas({ ...datas, [key]: undefined })
+      const nextDatas = { ...datas, [key]: undefined }
+      setDatas(nextDatas)
+      persistDatas(nextDatas)
     }
   }
 
@@ -161,7 +173,7 @@ export function WorkflowDialog({ open, onOpenChange, processo, onSave }: Workflo
             Cancelar
           </Button>
           <Button onClick={handleSave}>
-            Salvar Trâmite
+            Fechar
           </Button>
         </div>
       </DialogContent>
