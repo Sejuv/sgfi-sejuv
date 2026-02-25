@@ -10,6 +10,25 @@ const loadingPromises = new Map<string, Promise<any>>()
 const lastSaveTimestamp = new Map<string, number>()
 const forceReloadKeys = new Set<string>()
 
+function saveToLocalStorage(key: string, data: any) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data))
+  } catch (error) {
+    console.warn(`⚠️ [${key}] Falha ao salvar no localStorage:`, error)
+  }
+}
+
+function loadFromLocalStorage<T>(key: string): T | undefined {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return undefined
+    return JSON.parse(raw) as T
+  } catch (error) {
+    console.warn(`⚠️ [${key}] Falha ao ler do localStorage:`, error)
+    return undefined
+  }
+}
+
 export function forceReloadFirebaseKey(key: string) {
   console.log(`🔄 [${key}] Forçando recarregamento`)
   forceReloadKeys.add(key)
@@ -38,6 +57,14 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
       console.log(`💾 [${key}] Inicializando com cache`)
       return globalCache.get(key)
     }
+
+    const localValue = loadFromLocalStorage<T>(key)
+    if (localValue !== undefined) {
+      console.log(`💾 [${key}] Inicializando com localStorage`)
+      globalCache.set(key, localValue)
+      return localValue
+    }
+
     console.log(`💾 [${key}] Inicializando com defaultValue`)
     return defaultValue
   })
@@ -51,6 +78,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
       if (isMountedRef.current) {
         console.log(`🔔 [${key}] Dados alterados`)
         globalCache.set(key, data)
+        saveToLocalStorage(key, data)
         setValue(data)
       }
     }
@@ -68,6 +96,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
             .then((data) => {
               console.log(`✅ [${key}] Dados carregados do Firebase`)
               globalCache.set(key, data)
+              saveToLocalStorage(key, data)
               if (isMountedRef.current) {
                 setValue(data)
               }
@@ -77,6 +106,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
             .catch((error) => {
               console.error(`❌ [${key}] Erro ao carregar:`, error)
               globalCache.set(key, defaultValueRef.current)
+              saveToLocalStorage(key, defaultValueRef.current)
               if (isMountedRef.current) {
                 setValue(defaultValueRef.current)
               }
@@ -113,20 +143,10 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
             }
             
             const currentCache = globalCache.get(key)
-            
-            if (Array.isArray(currentCache) && Array.isArray(listenerData)) {
-              if (currentCache.length === listenerData.length) {
-                const isSameData = JSON.stringify(currentCache.sort()) === JSON.stringify(listenerData.sort())
-                if (isSameData) {
-                  console.log(`⏭️ [${key}] Ignorando atualização (dados idênticos)`)
-                  return
-                }
-              }
-              
-              if (currentCache.length > listenerData.length) {
-                console.warn(`⚠️ [${key}] Listener retornou MENOS dados (${listenerData.length}) do que o cache atual (${currentCache.length}). Ignorando.`)
-                return
-              }
+
+            if (JSON.stringify(currentCache) === JSON.stringify(listenerData)) {
+              console.log(`⏭️ [${key}] Ignorando atualização (dados idênticos)`)
+              return
             }
             
             console.log(`📥 [${key}] Atualização recebida do listener`, {
@@ -135,6 +155,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
             })
             
             globalCache.set(key, listenerData)
+            saveToLocalStorage(key, listenerData)
             
             const listeners = globalListeners.get(key)
             if (listeners) {
@@ -182,6 +203,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
       })
       
       globalCache.set(key, resolvedValue)
+      saveToLocalStorage(key, resolvedValue)
       
       savingKeys.add(key)
       lastSaveTimestamp.set(key, Date.now())
@@ -217,12 +239,10 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
                 }
                 
                 const currentCache = globalCache.get(key)
-                
-                if (Array.isArray(currentCache) && Array.isArray(listenerData)) {
-                  if (currentCache.length > listenerData.length) {
-                    console.warn(`⚠️ [${key}] Listener retornou MENOS dados (${listenerData.length}) do que o cache atual (${currentCache.length}). BLOQUEADO.`)
-                    return
-                  }
+
+                if (JSON.stringify(currentCache) === JSON.stringify(listenerData)) {
+                  console.log(`⏭️ [${key}] Ignorando atualização (dados idênticos)`)
+                  return
                 }
                 
                 console.log(`📥 [${key}] Atualização recebida do listener`, {
@@ -231,6 +251,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
                 })
                 
                 globalCache.set(key, listenerData)
+                saveToLocalStorage(key, listenerData)
                 
                 const listeners = globalListeners.get(key)
                 if (listeners) {
@@ -254,6 +275,7 @@ export function useFirebaseKV<T>(key: string, defaultValue: T): [T, (value: T | 
             key,
             (listenerData) => {
               globalCache.set(key, listenerData)
+              saveToLocalStorage(key, listenerData)
               const listeners = globalListeners.get(key)
               if (listeners) {
                 listeners.forEach(listener => listener(listenerData))
