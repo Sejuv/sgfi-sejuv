@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "source": "server",
+    "runtime": "nodejs20",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "*.md",
+      "*.env*",
+      "nodemon.json"
+    ]
+  }
+}

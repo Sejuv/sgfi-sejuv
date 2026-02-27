@@ -1,0 +1,30 @@
+# Dependências
+node_modules/
+
+# Build do frontend
+dist/
+
+# Ambiente
+.env
+.env.local
+.env.*.local
+server/.env
+
+# Chave de conta de serviço Firebase (NUNCA faça commit!)
+server/serviceAccountKey.json
+serviceAccountKey.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/settings.json
+.idea/
+
+# Firebase
+.firebase/
