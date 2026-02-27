@@ -106,7 +106,8 @@ export function exportToPDF(options: ExportOptions) {
 
       if (entity.logoUrl) {
         try {
-          doc.addImage(entity.logoUrl, 'PNG', leftImageX, imageY, imageWidth, imageHeight)
+          const fmtLogo = entity.logoUrl.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG'
+          doc.addImage(entity.logoUrl, fmtLogo, leftImageX, imageY, imageWidth, imageHeight)
         } catch (e) {
           console.warn('Erro ao adicionar logo:', e)
         }
@@ -114,7 +115,8 @@ export function exportToPDF(options: ExportOptions) {
 
       if (entity.brasaoUrl) {
         try {
-          doc.addImage(entity.brasaoUrl, 'PNG', rightImageX, imageY, imageWidth, imageHeight)
+          const fmtBrasao = entity.brasaoUrl.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG'
+          doc.addImage(entity.brasaoUrl, fmtBrasao, rightImageX, imageY, imageWidth, imageHeight)
         } catch (e) {
           console.warn('Erro ao adicionar brasão:', e)
         }
@@ -155,23 +157,10 @@ export function exportToPDF(options: ExportOptions) {
   }
   
   yPosition += 3
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, pageWidth / 2, yPosition, {
-    align: 'center',
-  })
-  yPosition += 5
 
-  if (generatedBy) {
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'italic')
-    doc.text(`Gerado por: ${generatedBy}`, pageWidth / 2, yPosition, { align: 'center' })
-    doc.setFont('helvetica', 'normal')
-    yPosition += 5
-  }
-  
   if (startDate || endDate) {
     doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
     doc.text(`Período: ${getDateRangeString(startDate, endDate)}`, pageWidth / 2, yPosition, {
       align: 'center',
     })
@@ -265,32 +254,28 @@ export function exportToPDF(options: ExportOptions) {
   
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
+
     doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(60)
-    doc.text(systemName, pageWidth / 2, doc.internal.pageSize.getHeight() - 25, { align: 'center' })
+    doc.text(systemName, pageWidth / 2, pageHeight - 30, { align: 'center' })
 
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(100)
-    doc.text(footerText, pageWidth / 2, doc.internal.pageSize.getHeight() - 20, {
-      align: 'center',
-    })
+    doc.text(footerText, pageWidth / 2, pageHeight - 25, { align: 'center' })
+
+    doc.setFontSize(7)
+    doc.setTextColor(130)
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, pageHeight - 17)
 
     if (generatedBy) {
-      doc.setFontSize(7)
-      doc.setTextColor(130)
-      doc.text(`Gerado por: ${generatedBy}`, 14, doc.internal.pageSize.getHeight() - 10)
+      doc.text(`Gerado por: ${generatedBy}`, 14, pageHeight - 12)
     }
-    
+
     doc.setTextColor(150)
     doc.setFontSize(8)
-    doc.text(
-      `Página ${i} de ${totalPages}`,
-      pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: 'center' }
-    )
+    doc.text(`Página ${i} de ${totalPages}`, pageWidth - 14, pageHeight - 12, { align: 'right' })
   }
 
   const fileName = `SGFI_Relatorio_${getDateRangeString(startDate, endDate)}.pdf`

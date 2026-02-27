@@ -491,14 +491,6 @@ export function ReportsDialog({ open, onOpenChange, expenses, creditors, categor
                 )}
 
                 <div className="text-center mb-6">
-                  <p className="text-sm text-muted-foreground">
-                    Gerado em: {new Date().toLocaleString('pt-BR')}
-                  </p>
-                  {currentUser && (
-                    <p className="text-sm text-muted-foreground">
-                      Gerado por: <strong>{currentUser.name}</strong> ({currentUser.email})
-                    </p>
-                  )}
                   {(filters.startDate || filters.endDate) && (
                     <p className="text-sm text-muted-foreground">
                       Período: {filters.startDate ? formatDate(filters.startDate) : 'Início'} até {filters.endDate ? formatDate(filters.endDate) : 'Hoje'}
@@ -586,6 +578,9 @@ export function ReportsDialog({ open, onOpenChange, expenses, creditors, categor
                 <div className="mt-8 pt-4 border-t text-center text-xs text-muted-foreground">
                   <p className="font-semibold text-sm text-foreground mb-1">{systemConfig?.headerText || 'SGFI - Sistema de Gestão Financeira Institucional'}</p>
                   <p>{systemConfig?.footerText || '© 2024 - Todos os direitos reservados'}</p>
+                  <div className="flex justify-between mt-2 text-[11px]">
+                    <span>Gerado em: {new Date().toLocaleString('pt-BR')}{currentUser ? ` — Gerado por: ${currentUser.name}` : ''}</span>
+                  </div>
                 </div>
               </div>
             </div>
