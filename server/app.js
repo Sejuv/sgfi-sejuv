@@ -10,9 +10,10 @@ const cors    = require('cors')
 const app = express()
 
 // ── Middlewares ────────────────────────────────────────────────
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : '*'
+const rawOrigins = process.env.ALLOWED_ORIGINS || '*'
+const allowedOrigins = rawOrigins === '*'
+  ? '*'
+  : rawOrigins.split(',').map(o => o.trim())
 
 app.use(cors({ origin: allowedOrigins }))
 app.use(express.json())
