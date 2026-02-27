@@ -14,6 +14,7 @@ export interface ExportOptions {
   includeMetrics?: boolean
   entity?: SystemEntity
   config?: SystemConfig
+  generatedBy?: string
 }
 
 export function exportToExcel(options: ExportOptions) {
@@ -83,7 +84,7 @@ export function exportToExcel(options: ExportOptions) {
 }
 
 export function exportToPDF(options: ExportOptions) {
-  const { expenses, creditors, startDate, endDate, includeMetrics = true, entity, config } = options
+  const { expenses, creditors, startDate, endDate, includeMetrics = true, entity, config, generatedBy } = options
 
   const filteredExpenses = filterExpensesByDate(expenses, startDate, endDate)
 
@@ -165,8 +166,17 @@ export function exportToPDF(options: ExportOptions) {
     align: 'center',
   })
   yPosition += 5
+
+  if (generatedBy) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'italic')
+    doc.text(`Gerado por: ${generatedBy}`, pageWidth / 2, yPosition, { align: 'center' })
+    doc.setFont('helvetica', 'normal')
+    yPosition += 5
+  }
   
   if (startDate || endDate) {
+    doc.setFontSize(10)
     doc.text(`Período: ${getDateRangeString(startDate, endDate)}`, pageWidth / 2, yPosition, {
       align: 'center',
     })
@@ -262,11 +272,18 @@ export function exportToPDF(options: ExportOptions) {
     doc.setFontSize(8)
     doc.setTextColor(100)
     
-    doc.text(footerText, pageWidth / 2, doc.internal.pageSize.getHeight() - 15, {
+    doc.text(footerText, pageWidth / 2, doc.internal.pageSize.getHeight() - 20, {
       align: 'center',
     })
+
+    if (generatedBy) {
+      doc.setFontSize(7)
+      doc.setTextColor(130)
+      doc.text(`Gerado por: ${generatedBy}`, 14, doc.internal.pageSize.getHeight() - 10)
+    }
     
     doc.setTextColor(150)
+    doc.setFontSize(8)
     doc.text(
       `Página ${i} de ${totalPages}`,
       pageWidth / 2,

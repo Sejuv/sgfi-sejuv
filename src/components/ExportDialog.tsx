@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,8 @@ import { exportToExcel, exportToPDF } from '@/lib/export'
 import { FileXls, FilePdf, Calendar, Check } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { FloatingWindow } from '@/components/FloatingWindow'
-import { useLocalStorage } from '@/hooks/use-local-storage'
+import { useAuth } from '@/lib/auth-context'
+import { entitiesApi, settingsApi } from '@/lib/api'
 
 interface ExportDialogProps {
   open: boolean
@@ -20,20 +21,29 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ open, onOpenChange, expenses, creditors, categories }: ExportDialogProps) {
+  const { currentUser } = useAuth()
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [includeMetrics, setIncludeMetrics] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
-
-  const [entities] = useLocalStorage<SystemEntity[]>('system-entities', [])
-  const [systemConfig] = useLocalStorage<SystemConfig>('system-config', {
+  const [activeEntity, setActiveEntity] = useState<SystemEntity | undefined>(undefined)
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>({
     headerText: 'SGFI - Sistema de Gestão Financeira Institucional',
     footerText: '© 2024 - Todos os direitos reservados',
   })
 
-  const activeEntity = systemConfig?.entityId 
-    ? entities?.find(e => e.id === systemConfig.entityId)
-    : entities?.[0]
+  useEffect(() => {
+    entitiesApi.list().then(list => { if (list.length > 0) setActiveEntity(list[0]) }).catch(() => {})
+    settingsApi.list().then(s => {
+      if (s.headerText || s.footerText) {
+        setSystemConfig(prev => ({
+          ...prev,
+          headerText: s.headerText || prev.headerText,
+          footerText: s.footerText || prev.footerText,
+        }))
+      }
+    }).catch(() => {})
+  }, [])
 
   const handleExport = async (format: 'excel' | 'pdf') => {
     try {
@@ -48,6 +58,7 @@ export function ExportDialog({ open, onOpenChange, expenses, creditors, categori
         includeMetrics,
         entity: activeEntity,
         config: systemConfig,
+        generatedBy: currentUser?.name,
       }
 
       let fileName: string

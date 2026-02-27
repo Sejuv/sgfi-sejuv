@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,8 @@ import { formatCurrency, formatDate } from '@/lib/calculations'
 import { FileXls, FilePdf, Printer, FunnelSimple, X, Check, Eye } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { FloatingWindow } from '@/components/FloatingWindow'
-import { useLocalStorage } from '@/hooks/use-local-storage'
+import { useAuth } from '@/lib/auth-context'
+import { entitiesApi, settingsApi } from '@/lib/api'
 
 interface ReportsDialogProps {
   open: boolean
@@ -37,15 +38,25 @@ interface ReportFilters {
 }
 
 export function ReportsDialog({ open, onOpenChange, expenses, creditors, categories }: ReportsDialogProps) {
-  const [entities] = useLocalStorage<SystemEntity[]>('system-entities', [])
-  const [systemConfig] = useLocalStorage<SystemConfig>('system-config', {
+  const { currentUser } = useAuth()
+  const [activeEntity, setActiveEntity] = useState<SystemEntity | undefined>(undefined)
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>({
     headerText: 'SGFI - Sistema de Gestão Financeira Institucional',
     footerText: '© 2024 - Todos os direitos reservados',
   })
 
-  const activeEntity = systemConfig?.entityId 
-    ? entities?.find(e => e.id === systemConfig.entityId)
-    : entities?.[0]
+  useEffect(() => {
+    entitiesApi.list().then(list => { if (list.length > 0) setActiveEntity(list[0]) }).catch(() => {})
+    settingsApi.list().then(s => {
+      if (s.headerText || s.footerText) {
+        setSystemConfig(prev => ({
+          ...prev,
+          headerText: s.headerText || prev.headerText,
+          footerText: s.footerText || prev.footerText,
+        }))
+      }
+    }).catch(() => {})
+  }, [])
 
   const [filters, setFilters] = useState<ReportFilters>({
     startDate: '',
@@ -157,6 +168,7 @@ export function ReportsDialog({ open, onOpenChange, expenses, creditors, categor
         includeMetrics,
         entity: activeEntity,
         config: systemConfig,
+        generatedBy: currentUser?.name,
       }
 
       let fileName: string
@@ -483,6 +495,11 @@ export function ReportsDialog({ open, onOpenChange, expenses, creditors, categor
                   <p className="text-sm text-muted-foreground">
                     Gerado em: {new Date().toLocaleString('pt-BR')}
                   </p>
+                  {currentUser && (
+                    <p className="text-sm text-muted-foreground">
+                      Gerado por: <strong>{currentUser.name}</strong> ({currentUser.email})
+                    </p>
+                  )}
                   {(filters.startDate || filters.endDate) && (
                     <p className="text-sm text-muted-foreground">
                       Período: {filters.startDate ? formatDate(filters.startDate) : 'Início'} até {filters.endDate ? formatDate(filters.endDate) : 'Hoje'}
