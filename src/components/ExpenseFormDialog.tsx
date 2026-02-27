@@ -55,6 +55,9 @@ export function ExpenseFormDialog({
   const [status, setStatus] = useState<ExpenseStatus>(expense?.status || 'pending')
   const [creditorId, setCreditorId] = useState(expense?.creditorId || '')
 
+  // Controle de alterações não salvas
+  const [isDirty, setIsDirty] = useState(false)
+
   // Contrato selecionado
   const selectedContract = useMemo(
     () => contracts.find((c) => c.id === selectedContractId) || null,
@@ -100,6 +103,7 @@ export function ExpenseFormDialog({
     setSelectedContractId(contract.id)
     setContractSearch(`${contract.number} – ${contract.description}`)
     setShowContractList(false)
+    setIsDirty(true)
   }
 
   const handleItemQtyChange = (item: ContractItem, value: string) => {
@@ -111,6 +115,7 @@ export function ExpenseFormDialog({
       return
     }
     setItemQtys((prev) => ({ ...prev, [item.id]: value }))
+    setIsDirty(true)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -171,6 +176,10 @@ export function ExpenseFormDialog({
     )
 
     // Reset
+    handleClose()
+  }
+
+  const handleClose = () => {
     setSelectedContractId('')
     setContractSearch('')
     setItemQtys({})
@@ -179,15 +188,17 @@ export function ExpenseFormDialog({
     setMonth('')
     setStatus('pending')
     setCreditorId('')
+    setIsDirty(false)
     onOpenChange(false)
   }
 
   return (
     <FloatingWindow
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(true) }}
       title={expense ? 'Editar Despesa' : 'Nova Despesa'}
       description="Preencha os dados da despesa institucional"
+      confirmClose={isDirty}
     >
       <form onSubmit={handleSubmit} className="h-full flex flex-col">
         <div className="flex-1 overflow-auto">
@@ -355,7 +366,7 @@ export function ExpenseFormDialog({
             {/* ── Credor ── */}
             <div className="grid gap-2">
               <Label htmlFor="creditor">Credor</Label>
-              <Select value={creditorId} onValueChange={setCreditorId}>
+              <Select value={creditorId} onValueChange={(v) => { setCreditorId(v); setIsDirty(true) }}>
                 <SelectTrigger id="creditor">
                   <SelectValue placeholder="Selecione um credor" />
                 </SelectTrigger>
@@ -372,7 +383,7 @@ export function ExpenseFormDialog({
             {/* ── Tipo de Conta ── */}
             <div className="grid gap-2">
               <Label htmlFor="type">Tipo de Conta</Label>
-              <Select value={type} onValueChange={(v) => setType(v as ExpenseType)}>
+              <Select value={type} onValueChange={(v) => { setType(v as ExpenseType); setIsDirty(true) }}>
                 <SelectTrigger id="type">
                   <SelectValue />
                 </SelectTrigger>
@@ -400,7 +411,7 @@ export function ExpenseFormDialog({
                   <Calendar
                     mode="single"
                     selected={dueDate}
-                    onSelect={setDueDate}
+                    onSelect={(d) => { setDueDate(d); setIsDirty(true) }}
                     initialFocus
                   />
                 </PopoverContent>
@@ -410,7 +421,7 @@ export function ExpenseFormDialog({
             {/* ── Mês de Referência ── */}
             <div className="grid gap-2">
               <Label htmlFor="month">Mês de Referência</Label>
-              <Select value={month} onValueChange={setMonth}>
+              <Select value={month} onValueChange={(v) => { setMonth(v); setIsDirty(true) }}>
                 <SelectTrigger id="month">
                   <SelectValue placeholder="Selecione o mês" />
                 </SelectTrigger>
@@ -434,7 +445,7 @@ export function ExpenseFormDialog({
             {/* ── Status ── */}
             <div className="grid gap-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as ExpenseStatus)}>
+              <Select value={status} onValueChange={(v) => { setStatus(v as ExpenseStatus); setIsDirty(true) }}>
                 <SelectTrigger id="status">
                   <SelectValue />
                 </SelectTrigger>
@@ -449,7 +460,7 @@ export function ExpenseFormDialog({
         </div>
 
         <div className="flex gap-3 justify-end pt-6 border-t mt-6">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
           <Button type="submit" disabled={computedAmount <= 0 || !selectedContractId}>

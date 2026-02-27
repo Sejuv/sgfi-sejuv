@@ -62,6 +62,7 @@ export function ContractFormDialog({
   const [alertNewContract, setAlertNewContract] = useState<string>('')
   const [alertAdditive, setAlertAdditive] = useState<string>('')
   const [activeAC, setActiveAC] = useState<string | null>(null)
+  const [isDirty, setIsDirty] = useState(false)
   const acRef = useRef<HTMLDivElement>(null)
 
   // Fecha dropdown ao clicar fora
@@ -93,6 +94,7 @@ export function ContractFormDialog({
     } else {
       resetForm()
     }
+    setIsDirty(false)
   }, [initialData, open])
 
   function resetForm() {
@@ -106,11 +108,12 @@ export function ContractFormDialog({
     setItems([emptyItem()])
     setAlertNewContract('')
     setAlertAdditive('')
+    setIsDirty(false)
   }
 
   const totalValue = items.reduce((acc, i) => acc + i.quantity * i.unitPrice, 0)
 
-  const addItem = () => setItems((prev) => [...prev, emptyItem()])
+  const addItem = () => { setItems((prev) => [...prev, emptyItem()]); setIsDirty(true) }
 
   const pickCatalogItem = (itemId: string, ci: CatalogItem) => {
     setItems(prev => prev.map(i =>
@@ -119,13 +122,18 @@ export function ContractFormDialog({
         : i
     ))
     setActiveAC(null)
+    setIsDirty(true)
   }
 
-  const removeItem = (id: string) =>
+  const removeItem = (id: string) => {
     setItems((prev) => (prev.length > 1 ? prev.filter((i) => i.id !== id) : prev))
+    setIsDirty(true)
+  }
 
-  const updateItem = (id: string, field: keyof ContractItem, value: string | number) =>
+  const updateItem = (id: string, field: keyof ContractItem, value: string | number) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)))
+    setIsDirty(true)
+  }
 
   const handleSave = () => {
     if (!number.trim() || !description.trim() || !startDate || !endDate) return
@@ -141,9 +149,10 @@ export function ContractFormDialog({
   return (
     <FloatingWindow
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(v) => { if (!v) { resetForm(); onOpenChange(false) } else onOpenChange(v) }}
       title={initialData ? 'Editar Contrato' : 'Novo Contrato'}
       description="Preencha os dados do contrato e seus itens"
+      confirmClose={isDirty}
     >
       <div className="h-full flex flex-col gap-0 overflow-hidden">
         <div className="flex-1 overflow-auto p-1 space-y-6">
@@ -154,13 +163,13 @@ export function ContractFormDialog({
               <Input
                 id="c-number"
                 value={number}
-                onChange={(e) => setNumber(e.target.value)}
+                onChange={(e) => { setNumber(e.target.value); setIsDirty(true) }}
                 placeholder="Ex: 001/2026"
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="c-status">Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as ContractStatus)}>
+              <Select value={status} onValueChange={(v) => { setStatus(v as ContractStatus); setIsDirty(true) }}>
                 <SelectTrigger id="c-status">
                   <SelectValue />
                 </SelectTrigger>
@@ -178,13 +187,13 @@ export function ContractFormDialog({
               <Input
                 id="c-desc"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => { setDescription(e.target.value); setIsDirty(true) }}
                 placeholder="Ex: Prestação de serviços de manutenção predial"
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="c-creditor">Fornecedor / Credor</Label>
-              <Select value={creditorId} onValueChange={setCreditorId}>
+              <Select value={creditorId} onValueChange={(v) => { setCreditorId(v); setIsDirty(true) }}>
                 <SelectTrigger id="c-creditor">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
@@ -204,7 +213,7 @@ export function ContractFormDialog({
                   id="c-start"
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => { setStartDate(e.target.value); setIsDirty(true) }}
                 />
               </div>
               <div className="grid gap-2">
@@ -213,7 +222,7 @@ export function ContractFormDialog({
                   id="c-end"
                   type="date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e) => { setEndDate(e.target.value); setIsDirty(true) }}
                 />
               </div>
             </div>
@@ -222,7 +231,7 @@ export function ContractFormDialog({
               <Textarea
                 id="c-notes"
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={(e) => { setNotes(e.target.value); setIsDirty(true) }}
                 placeholder="Informações adicionais, cláusulas relevantes..."
                 rows={2}
               />
@@ -252,7 +261,7 @@ export function ContractFormDialog({
                     type="number"
                     min={1}
                     value={alertNewContract}
-                    onChange={(e) => setAlertNewContract(e.target.value)}
+                    onChange={(e) => { setAlertNewContract(e.target.value); setIsDirty(true) }}
                     placeholder="Ex: 90"
                     className="w-28"
                   />
@@ -275,7 +284,7 @@ export function ContractFormDialog({
                     type="number"
                     min={1}
                     value={alertAdditive}
-                    onChange={(e) => setAlertAdditive(e.target.value)}
+                    onChange={(e) => { setAlertAdditive(e.target.value); setIsDirty(true) }}
                     placeholder="Ex: 30"
                     className="w-28"
                   />

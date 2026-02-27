@@ -29,6 +29,7 @@ export function CreditorFormDialog({
   const [neighborhood, setNeighborhood] = useState('')
   const [city, setCity]               = useState('')
   const [uf, setUf]                   = useState('')
+  const [isDirty, setIsDirty]         = useState(false)
 
   useEffect(() => {
     if (editingCreditor) {
@@ -44,11 +45,13 @@ export function CreditorFormDialog({
     } else {
       resetForm()
     }
+    setIsDirty(false)
   }, [editingCreditor, open])
 
   const resetForm = () => {
     setName(''); setDoc(''); setContact(''); setEmail('')
     setCep(''); setStreet(''); setNeighborhood(''); setCity(''); setUf('')
+    setIsDirty(false)
   }
 
   const handleClose = () => {
@@ -88,12 +91,18 @@ export function CreditorFormDialog({
     }
   }
 
+  const handleFieldChange = <T,>(setter: (v: T) => void) => (v: T) => {
+    setter(v)
+    setIsDirty(true)
+  }
+
   return (
     <FloatingWindow
       open={open}
       onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(true) }}
       title={editingCreditor ? 'Editar Credor' : 'Novo Credor'}
       description="Cadastre ou edite um fornecedor / prestador de serviço"
+      confirmClose={isDirty}
     >
       <div className="h-full flex flex-col">
         <div className="flex-1 overflow-auto space-y-4 pr-1">
@@ -104,7 +113,7 @@ export function CreditorFormDialog({
               <Input
                 id="creditor-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => handleFieldChange(setName)(e.target.value)}
                 placeholder="Ex: Empresa XYZ Ltda"
               />
             </div>
@@ -113,7 +122,7 @@ export function CreditorFormDialog({
               <Input
                 id="creditor-doc"
                 value={doc}
-                onChange={(e) => setDoc(e.target.value)}
+                onChange={(e) => handleFieldChange(setDoc)(e.target.value)}
                 placeholder="00.000.000/0000-00"
               />
             </div>
@@ -122,7 +131,7 @@ export function CreditorFormDialog({
               <Input
                 id="creditor-contact"
                 value={contact}
-                onChange={(e) => setContact(e.target.value)}
+                onChange={(e) => handleFieldChange(setContact)(e.target.value)}
                 placeholder="(00) 00000-0000"
               />
             </div>
@@ -132,7 +141,7 @@ export function CreditorFormDialog({
                 id="creditor-email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => handleFieldChange(setEmail)(e.target.value)}
                 placeholder="contato@empresa.com"
               />
             </div>
@@ -147,7 +156,7 @@ export function CreditorFormDialog({
                 <Input
                   id="creditor-cep"
                   value={cep}
-                  onChange={(e) => setCep(e.target.value)}
+                  onChange={(e) => handleFieldChange(setCep)(e.target.value)}
                   placeholder="00000-000"
                 />
               </div>
@@ -156,7 +165,7 @@ export function CreditorFormDialog({
                 <Input
                   id="creditor-street"
                   value={street}
-                  onChange={(e) => setStreet(e.target.value)}
+                  onChange={(e) => handleFieldChange(setStreet)(e.target.value)}
                   placeholder="Ex: Rua das Flores, 123"
                 />
               </div>
@@ -165,7 +174,7 @@ export function CreditorFormDialog({
                 <Input
                   id="creditor-neighborhood"
                   value={neighborhood}
-                  onChange={(e) => setNeighborhood(e.target.value)}
+                  onChange={(e) => handleFieldChange(setNeighborhood)(e.target.value)}
                   placeholder="Ex: Centro"
                 />
               </div>
@@ -174,7 +183,7 @@ export function CreditorFormDialog({
                 <Input
                   id="creditor-city"
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onChange={(e) => handleFieldChange(setCity)(e.target.value)}
                   placeholder="Ex: São Paulo"
                 />
               </div>
@@ -183,7 +192,7 @@ export function CreditorFormDialog({
                 <Input
                   id="creditor-uf"
                   value={uf}
-                  onChange={(e) => setUf(e.target.value)}
+                  onChange={(e) => handleFieldChange(setUf)(e.target.value)}
                   placeholder="SP"
                   maxLength={2}
                   className="uppercase"
