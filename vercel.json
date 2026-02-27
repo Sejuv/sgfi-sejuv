@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://SEU-APP.up.railway.app/api/:path*"
+      "destination": "https://sgfi-sejuv-production.up.railway.app/api/:path*"
     }
   ]
 }
