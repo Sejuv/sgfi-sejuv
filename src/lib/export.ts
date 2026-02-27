@@ -155,11 +155,6 @@ export function exportToPDF(options: ExportOptions) {
   }
   
   yPosition += 3
-  doc.setFontSize(18)
-  doc.setFont('helvetica', 'bold')
-  doc.text(config?.headerText || 'SGFI - Relatório de Despesas', pageWidth / 2, yPosition, { align: 'center' })
-  yPosition += 7
-  
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, pageWidth / 2, yPosition, {
@@ -265,13 +260,19 @@ export function exportToPDF(options: ExportOptions) {
   })
 
   const totalPages = (doc as any).internal.pages.length - 1
+  const systemName = config?.headerText || 'SGFI - Sistema de Gestão Financeira Institucional'
   const footerText = config?.footerText || '© 2024 - Todos os direitos reservados'
   
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(60)
+    doc.text(systemName, pageWidth / 2, doc.internal.pageSize.getHeight() - 25, { align: 'center' })
+
     doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
     doc.setTextColor(100)
-    
     doc.text(footerText, pageWidth / 2, doc.internal.pageSize.getHeight() - 20, {
       align: 'center',
     })

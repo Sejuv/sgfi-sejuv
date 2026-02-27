@@ -491,7 +491,6 @@ export function ReportsDialog({ open, onOpenChange, expenses, creditors, categor
                 )}
 
                 <div className="text-center mb-6">
-                  <h2 className="text-xl font-bold mb-2">{systemConfig?.headerText || 'Relatório de Despesas'}</h2>
                   <p className="text-sm text-muted-foreground">
                     Gerado em: {new Date().toLocaleString('pt-BR')}
                   </p>
@@ -585,6 +584,7 @@ export function ReportsDialog({ open, onOpenChange, expenses, creditors, categor
                 </div>
 
                 <div className="mt-8 pt-4 border-t text-center text-xs text-muted-foreground">
+                  <p className="font-semibold text-sm text-foreground mb-1">{systemConfig?.headerText || 'SGFI - Sistema de Gestão Financeira Institucional'}</p>
                   <p>{systemConfig?.footerText || '© 2024 - Todos os direitos reservados'}</p>
                 </div>
               </div>
