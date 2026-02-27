@@ -3,6 +3,8 @@ node_modules/
 
 # Build do frontend
 dist/
+# Manter o dist do spark-tools local (pacote @github/spark local)
+!packages/spark-tools/dist/
 
 # Ambiente
 .env
