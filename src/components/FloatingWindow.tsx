@@ -55,29 +55,23 @@ export function FloatingWindow({
 
   return (
     <>
-      {/* Overlay — NÃO fecha ao clicar */}
-      <div
-        className="fixed z-40 bg-background/60 backdrop-blur-sm"
-        style={{ left: 'var(--sidebar-width, 0)', right: 0, top: 0, bottom: 0 }}
-      />
-
-      {/* Painel fixo — mesmo padrão dos módulos */}
+      {/* Painel fixo — ocupa exatamente a área de conteúdo (direita da sidebar, abaixo do header) */}
       <div
         className={cn(
-          'fixed z-50 bg-card shadow-2xl flex flex-col rounded-xl border',
+          'fixed z-30 bg-background flex flex-col',
           className
         )}
         style={{
-          left: 'calc(var(--sidebar-width, 0px) + 1.5rem)',
-          right: '1.5rem',
-          top: '1.5rem',
-          bottom: '1.5rem',
+          left: 'var(--sidebar-width, 0px)',
+          right: 0,
+          top: '4rem',   /* altura do header (h-16) */
+          bottom: 0,
         }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/30 rounded-t-xl">
+        {/* Header da página — mesmo estilo dos módulos */}
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-background/95 backdrop-blur">
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold font-display truncate">{title}</h2>
+            <h2 className="text-xl font-bold font-display truncate">{title}</h2>
             {description && (
               <p className="text-sm text-muted-foreground truncate">{description}</p>
             )}
@@ -93,7 +87,7 @@ export function FloatingWindow({
           </Button>
         </div>
 
-        {/* Conteúdo */}
+        {/* Conteúdo com mesmo padding dos módulos */}
         <div className="flex-1 overflow-auto p-6">
           {children}
         </div>
