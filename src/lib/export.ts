@@ -93,40 +93,17 @@ export function exportToPDF(options: ExportOptions) {
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   
-  let yPosition = 15
-  const imageHeight = 20
-  const imageWidth = 20
-  const headerSpacing = 10
+  let yPosition = 10
+  const brasaoSize = 28
+  const logoSize   = 18
 
-  if (entity?.logoUrl || entity?.brasaoUrl) {
+  // Brasão centralizado no topo
+  if (entity?.brasaoUrl) {
     try {
-      const leftImageX = 20
-      const rightImageX = pageWidth - 20 - imageWidth
-      const imageY = yPosition
-
-      if (entity.logoUrl) {
-        try {
-          const fmtLogo = entity.logoUrl.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG'
-          doc.addImage(entity.logoUrl, fmtLogo, leftImageX, imageY, imageWidth, imageHeight)
-        } catch (e) {
-          console.warn('Erro ao adicionar logo:', e)
-        }
-      }
-
-      if (entity.brasaoUrl) {
-        try {
-          const fmtBrasao = entity.brasaoUrl.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG'
-          doc.addImage(entity.brasaoUrl, fmtBrasao, rightImageX, imageY, imageWidth, imageHeight)
-        } catch (e) {
-          console.warn('Erro ao adicionar brasão:', e)
-        }
-      }
-
-      yPosition += imageHeight + headerSpacing
-    } catch (error) {
-      console.warn('Erro ao processar imagens:', error)
-      yPosition += 5
-    }
+      const fmt = entity.brasaoUrl.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG'
+      doc.addImage(entity.brasaoUrl, fmt, (pageWidth - brasaoSize) / 2, yPosition, brasaoSize, brasaoSize)
+      yPosition += brasaoSize + 4
+    } catch (e) { console.warn('Erro ao adicionar brasão:', e); yPosition += 5 }
   }
 
   if (entity) {
@@ -255,27 +232,34 @@ export function exportToPDF(options: ExportOptions) {
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
 
+    // Logo centralizado no rodapé
+    if (entity?.logoUrl) {
+      try {
+        const fmt = entity.logoUrl.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG'
+        doc.addImage(entity.logoUrl, fmt, (pageWidth - logoSize) / 2, pageHeight - 38, logoSize, logoSize)
+      } catch (e) { console.warn('Erro ao adicionar logo:', e) }
+    }
+
     doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(60)
-    doc.text(systemName, pageWidth / 2, pageHeight - 30, { align: 'center' })
+    doc.text(systemName, pageWidth / 2, pageHeight - 17, { align: 'center' })
 
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(100)
-    doc.text(footerText, pageWidth / 2, pageHeight - 25, { align: 'center' })
+    doc.text(footerText, pageWidth / 2, pageHeight - 12, { align: 'center' })
 
     doc.setFontSize(7)
     doc.setTextColor(130)
-    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, pageHeight - 17)
-
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, pageHeight - 6)
     if (generatedBy) {
-      doc.text(`Gerado por: ${generatedBy}`, 14, pageHeight - 12)
+      doc.text(`| Gerado por: ${generatedBy}`, 80, pageHeight - 6)
     }
 
     doc.setTextColor(150)
     doc.setFontSize(8)
-    doc.text(`Página ${i} de ${totalPages}`, pageWidth - 14, pageHeight - 12, { align: 'right' })
+    doc.text(`Página ${i} de ${totalPages}`, pageWidth - 14, pageHeight - 6, { align: 'right' })
   }
 
   const fileName = `SGFI_Relatorio_${getDateRangeString(startDate, endDate)}.pdf`

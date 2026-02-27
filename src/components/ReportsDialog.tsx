@@ -467,21 +467,17 @@ export function ReportsDialog({ open, onOpenChange, expenses, creditors, categor
               <div className="bg-white p-8 rounded-lg">
                 {activeEntity && (
                   <div className="text-center mb-6 pb-6 border-b-2">
-                    <div className="flex items-center justify-center gap-8 mb-4">
-                      {activeEntity.logoUrl && (
-                        <img src={activeEntity.logoUrl} alt="Logo" className="h-16 w-16 object-contain" />
-                      )}
-                      <div>
-                        <h1 className="text-2xl font-bold font-display">{activeEntity.fullName}</h1>
-                        {activeEntity.documentNumber && (
-                          <p className="text-sm text-muted-foreground">CNPJ: {activeEntity.documentNumber}</p>
-                        )}
+                    {/* Brasão centralizado no topo */}
+                    {activeEntity.brasaoUrl && (
+                      <div className="flex justify-center mb-3">
+                        <img src={activeEntity.brasaoUrl} alt="Brasão" className="h-20 w-20 object-contain" />
                       </div>
-                      {activeEntity.brasaoUrl && (
-                        <img src={activeEntity.brasaoUrl} alt="Brasão" className="h-16 w-16 object-contain" />
-                      )}
-                    </div>
-                    {activeEntity.address && <p className="text-xs">{activeEntity.address}</p>}
+                    )}
+                    <h1 className="text-2xl font-bold font-display">{activeEntity.fullName}</h1>
+                    {activeEntity.documentNumber && (
+                      <p className="text-sm text-muted-foreground">CNPJ: {activeEntity.documentNumber}</p>
+                    )}
+                    {activeEntity.address && <p className="text-xs mt-1">{activeEntity.address}</p>}
                     {(activeEntity.phone || activeEntity.email) && (
                       <p className="text-xs text-muted-foreground">
                         {[activeEntity.phone, activeEntity.email].filter(Boolean).join(' | ')}
@@ -576,11 +572,17 @@ export function ReportsDialog({ open, onOpenChange, expenses, creditors, categor
                 </div>
 
                 <div className="mt-8 pt-4 border-t text-center text-xs text-muted-foreground">
+                  {/* Logo centralizado no rodapé */}
+                  {activeEntity?.logoUrl && (
+                    <div className="flex justify-center mb-3">
+                      <img src={activeEntity.logoUrl} alt="Logo" className="h-12 w-12 object-contain opacity-80" />
+                    </div>
+                  )}
                   <p className="font-semibold text-sm text-foreground mb-1">{systemConfig?.headerText || 'SGFI - Sistema de Gestão Financeira Institucional'}</p>
                   <p>{systemConfig?.footerText || '© 2024 - Todos os direitos reservados'}</p>
-                  <div className="flex justify-between mt-2 text-[11px]">
-                    <span>Gerado em: {new Date().toLocaleString('pt-BR')}{currentUser ? ` — Gerado por: ${currentUser.name}` : ''}</span>
-                  </div>
+                  <p className="mt-2 text-[11px]">
+                    Gerado em: {new Date().toLocaleString('pt-BR')}{currentUser ? ` — Gerado por: ${currentUser.name}` : ''}
+                  </p>
                 </div>
               </div>
             </div>
