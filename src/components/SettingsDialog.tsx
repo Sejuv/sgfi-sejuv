@@ -160,27 +160,46 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   }
 
   const handleImageUpload = (file: File, type: 'logo' | 'brasao') => {
-    if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
-      toast.error('Apenas arquivos PNG ou JPEG são permitidos')
+    if (!file.type.match(/image\/(png|jpeg|jpg|webp|svg\+xml)/)) {
+      toast.error('Apenas arquivos PNG, JPEG, WEBP ou SVG são permitidos')
       return
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('O arquivo deve ter no máximo 5MB')
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('O arquivo deve ter no máximo 10MB')
       return
     }
 
     const reader = new FileReader()
     reader.onloadend = () => {
-      const base64String = reader.result as string
-      if (type === 'logo') {
-        setEntityLogoPreview(base64String)
-        setEditingEntity((current) => ({ ...current, logoUrl: base64String }))
-      } else {
-        setEntityBrasaoPreview(base64String)
-        setEditingEntity((current) => ({ ...current, brasaoUrl: base64String }))
+      const originalBase64 = reader.result as string
+
+      // Comprime e redimensiona via canvas para caber no Firestore (limite 1MB/doc)
+      const img = new Image()
+      img.onload = () => {
+        const MAX_SIZE = 256
+        let { width, height } = img
+        if (width > MAX_SIZE || height > MAX_SIZE) {
+          if (width > height) { height = Math.round((height * MAX_SIZE) / width); width = MAX_SIZE }
+          else { width = Math.round((width * MAX_SIZE) / height); height = MAX_SIZE }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, width, height)
+        const compressed = canvas.toDataURL('image/jpeg', 0.8)
+
+        if (type === 'logo') {
+          setEntityLogoPreview(compressed)
+          setEditingEntity((current) => ({ ...current, logoUrl: compressed }))
+        } else {
+          setEntityBrasaoPreview(compressed)
+          setEditingEntity((current) => ({ ...current, brasaoUrl: compressed }))
+        }
+        toast.success(`${type === 'logo' ? 'Logo' : 'Brasão'} carregado!`)
       }
-      toast.success(`${type === 'logo' ? 'Logo' : 'Brasão'} carregado!`)
+      img.src = originalBase64
     }
     reader.readAsDataURL(file)
   }

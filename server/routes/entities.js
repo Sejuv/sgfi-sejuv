@@ -31,6 +31,8 @@ router.get('/', async (_req, res) => {
 router.post('/', async (req, res) => {
   const { name, fullName, documentNumber, address, phone, email, website, logoUrl, brasaoUrl } = req.body
   if (!name || !fullName) return res.status(400).json({ error: 'Nome e nome completo são obrigatórios' })
+  const docSize = JSON.stringify(req.body).length
+  if (docSize > 900000) return res.status(413).json({ error: 'Imagens muito grandes. Reduza o tamanho das imagens e tente novamente.' })
   try {
     const existing = await col().limit(1).get()
     if (!existing.empty) return res.status(409).json({ error: 'Já existe uma entidade cadastrada' })
@@ -47,6 +49,8 @@ router.post('/', async (req, res) => {
 // PUT /api/entities/:id
 router.put('/:id', async (req, res) => {
   const { name, fullName, documentNumber, address, phone, email, website, logoUrl, brasaoUrl } = req.body
+  const docSize = JSON.stringify(req.body).length
+  if (docSize > 900000) return res.status(413).json({ error: 'Imagens muito grandes. Reduza o tamanho das imagens e tente novamente.' })
   try {
     const ref = col().doc(req.params.id)
     if (!(await ref.get()).exists) return res.status(404).json({ error: 'Entidade não encontrada' })
