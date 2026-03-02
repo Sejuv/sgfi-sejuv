@@ -75,6 +75,9 @@ export function ExpenseFormDialog({
       : ''
   )
 
+  // ── Descrição manual ────────────────────────────────────────
+  const [description, setDescription] = useState(expense?.description || '')
+
   // ── Demais campos ──────────────────────────────────────────
   const [type,       setType]       = useState<ExpenseType>(expense?.type   || 'variable')
   const [dueDate,    setDueDate]    = useState<Date | undefined>(
@@ -116,6 +119,7 @@ export function ExpenseFormDialog({
           ? String(expense.amount)
           : ''
       )
+      setDescription(expense.description || '')
       setType(expense.type || 'variable')
       setDueDate(expense.dueDate ? new Date(expense.dueDate) : undefined)
       setMonth(expense.month || '')
@@ -228,14 +232,15 @@ export function ExpenseFormDialog({
           .map((item) => ({ itemId: item.id, qty: parseFloat(itemQtys[item.id]) }))
       : []
 
-    const description = isUtility
-      ? `${CLASSIFICATION_LABELS[classification]}${customerNumber ? ` – Nº ${customerNumber}` : ''}`
-      : `${selectedContract!.number} – ${selectedContract!.description}`
+    const finalDescription = description.trim()
+      || (isUtility
+        ? `${CLASSIFICATION_LABELS[classification]}${customerNumber ? ` – Nº ${customerNumber}` : ''}`
+        : `${selectedContract!.number} – ${selectedContract!.description}`)
 
     onSave(
       {
         number:             expenseNumber.trim(),
-        description,
+        description:        finalDescription,
         amount:             finalAmount,
         type,
         classification,
@@ -263,6 +268,7 @@ export function ExpenseFormDialog({
     setContractSearch('')
     setItemQtys({})
     setManualAmount('')
+    setDescription('')
     setType('variable')
     setDueDate(undefined)
     setMonth('')
@@ -296,6 +302,20 @@ export function ExpenseFormDialog({
               />
               <p className="text-xs text-muted-foreground">
                 Gerado automaticamente. Pode ser editado conforme necessário.
+              </p>
+            </div>
+
+            {/* ── Descrição ── */}
+            <div className="grid gap-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Input
+                id="description"
+                placeholder="Ex: Conta de água – Março/2026"
+                value={description}
+                onChange={(e) => { setDescription(e.target.value); setIsDirty(true) }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Se deixado em branco, será gerado automaticamente a partir da classificação/contrato.
               </p>
             </div>
 
