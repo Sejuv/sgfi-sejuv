@@ -29,9 +29,6 @@ interface DashboardProps {
 const TYPE_COLORS = ['oklch(0.35 0.08 250)', 'oklch(0.65 0.15 190)']
 const CLASS_COLORS = ['oklch(0.45 0.15 220)', 'oklch(0.60 0.18 80)', 'oklch(0.50 0.08 250)']
 
-const TYPE_COLORS = ['oklch(0.35 0.08 250)', 'oklch(0.65 0.15 190)']
-const CLASS_COLORS = ['oklch(0.45 0.15 220)', 'oklch(0.60 0.18 80)', 'oklch(0.50 0.08 250)']
-
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
