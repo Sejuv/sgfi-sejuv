@@ -26,11 +26,18 @@ interface DashboardProps {
   contracts: Contract[]
 }
 
-// Paleta de cores dos gráficos
-const TYPE_COLORS: string[] = ['oklch(0.35 0.08 250)', 'oklch(0.65 0.15 190)']
-const CLASS_COLORS: string[] = ['oklch(0.45 0.15 220)', 'oklch(0.60 0.18 80)', 'oklch(0.50 0.08 250)']
+const CHART_COLORS_TYPE: string[] = [
+  'oklch(0.35 0.08 250)',
+  'oklch(0.65 0.15 190)',
+]
 
-const cardVariants = {
+const CHART_COLORS_CLASS: string[] = [
+  'oklch(0.45 0.15 220)',
+  'oklch(0.60 0.18 80)',
+  'oklch(0.50 0.08 250)',
+]
+
+const cardAnim = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 }
@@ -50,13 +57,13 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
 
   const upcomingExpenses = useMemo(() => {
     const now = new Date()
-    const sevenDaysFromNow = new Date()
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+    const limit = new Date()
+    limit.setDate(limit.getDate() + 7)
     return updatedExpenses
       .filter((e) => {
         if (e.status === 'paid') return false
         const d = new Date(e.dueDate)
-        return d >= now && d <= sevenDaysFromNow
+        return d >= now && d <= limit
       })
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
       .slice(0, 5)
@@ -79,9 +86,9 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
         <p className="text-muted-foreground mt-1">Visão geral das finanças institucionais</p>
       </div>
 
-      {/* ─── Cards de métricas ─── */}
+      {/* Cards de métricas */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <motion.div initial="hidden" animate="visible" variants={cardVariants} transition={{ delay: 0, duration: 0.5 }}>
+        <motion.div initial="hidden" animate="visible" variants={cardAnim} transition={{ delay: 0, duration: 0.5 }}>
           <Card className="border-l-4 border-l-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Gasto (Mês)</CardTitle>
@@ -96,7 +103,7 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
           </Card>
         </motion.div>
 
-        <motion.div initial="hidden" animate="visible" variants={cardVariants} transition={{ delay: 0.08, duration: 0.5 }}>
+        <motion.div initial="hidden" animate="visible" variants={cardAnim} transition={{ delay: 0.08, duration: 0.5 }}>
           <Card className="border-l-4 border-l-warning">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total a Pagar</CardTitle>
@@ -111,7 +118,7 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
           </Card>
         </motion.div>
 
-        <motion.div initial="hidden" animate="visible" variants={cardVariants} transition={{ delay: 0.16, duration: 0.5 }}>
+        <motion.div initial="hidden" animate="visible" variants={cardAnim} transition={{ delay: 0.16, duration: 0.5 }}>
           <Card className="border-l-4 border-l-accent">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Saldo Disponível</CardTitle>
@@ -128,7 +135,7 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
           </Card>
         </motion.div>
 
-        <motion.div initial="hidden" animate="visible" variants={cardVariants} transition={{ delay: 0.24, duration: 0.5 }}>
+        <motion.div initial="hidden" animate="visible" variants={cardAnim} transition={{ delay: 0.24, duration: 0.5 }}>
           <Card className="border-l-4 border-l-destructive">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Vencimentos Próximos</CardTitle>
@@ -144,7 +151,7 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
         </motion.div>
       </div>
 
-      {/* ─── Card de contratos ─── */}
+      {/* Card de contratos ativos */}
       {contracts.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -197,14 +204,14 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
         </motion.div>
       )}
 
-      {/* ─── Alertas ─── */}
+      {/* Alerta de despesas vencidas */}
       {overdueExpenses.length > 0 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3, duration: 0.4 }}
         >
-          <Alert variant="destructive" className="animate-pulse-warning">
+          <Alert variant="destructive">
             <Warning className="h-5 w-5" />
             <AlertDescription className="ml-2">
               <strong>Atenção!</strong> Você tem {overdueExpenses.length} despesa(s) vencida(s){' '}
@@ -214,7 +221,7 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
         </motion.div>
       )}
 
-      {/* ─── Gráficos ─── */}
+      {/* Gráficos */}
       <div className="grid gap-6 md:grid-cols-2">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -245,7 +252,7 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
                       label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
                     >
                       {expensesByType.map((_, index) => (
-                        <Cell key={`type-${index}`} fill={TYPE_COLORS[index % TYPE_COLORS.length]} />
+                        <Cell key={`type-${index}`} fill={CHART_COLORS_TYPE[index % CHART_COLORS_TYPE.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value: number) => formatCurrency(value)} />
@@ -286,7 +293,7 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
                       label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
                     >
                       {expensesByClass.map((_, index) => (
-                        <Cell key={`class-${index}`} fill={CLASS_COLORS[index % CLASS_COLORS.length]} />
+                        <Cell key={`class-${index}`} fill={CHART_COLORS_CLASS[index % CHART_COLORS_CLASS.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value: number) => formatCurrency(value)} />
@@ -341,7 +348,7 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
         </motion.div>
       </div>
 
-      {/* ─── Despesas a vencer ─── */}
+      {/* Despesas a vencer */}
       {upcomingExpenses.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
