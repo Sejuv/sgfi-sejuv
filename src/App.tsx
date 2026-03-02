@@ -39,6 +39,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { expensesApi, creditorsApi, categoriesApi, contractsApi } from '@/lib/api'
+import { BottomBar } from '@/components/BottomBar'
 import { Expense, Creditor, Category, Contract, ContractItem, CatalogItem } from '@/lib/types'
 import { formatCurrency, updateExpenseStatus } from '@/lib/calculations'
 import {
@@ -431,7 +432,7 @@ function AppContent() {
               </Button>
             </div>
           </header>
-          <div className="p-6">{renderContent()}</div>
+          <div className="p-6 pb-14">{renderContent()}</div>
         </main>
       </div>
 
@@ -511,6 +512,7 @@ function AppContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <BottomBar />
     </SidebarProvider>
   )
 }
