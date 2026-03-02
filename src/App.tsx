@@ -391,7 +391,7 @@ function AppContent() {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter>
+          <SidebarFooter className="pb-9">
             <SidebarMenu>
               <SidebarMenuItem>
                 <div className="flex items-center gap-3 px-4 py-3 border-t">
