@@ -133,12 +133,13 @@ export function ExpensesView({
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => onEditExpense(expense)}
-                            title="Editar despesa"
+                            className="gap-1 text-primary border-primary/40 hover:bg-primary/10"
                           >
-                            <PencilSimple size={15} />
+                            <PencilSimple size={14} weight="bold" />
+                            Editar
                           </Button>
                           <Button
                             variant="ghost"
