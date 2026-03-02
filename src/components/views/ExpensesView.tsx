@@ -1,9 +1,8 @@
-import { type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Wallet, Trash } from '@phosphor-icons/react'
+import { Plus, Wallet, Trash, Drop, Lightning } from '@phosphor-icons/react'
 import { Expense, Creditor } from '@/lib/types'
 import { formatCurrency, formatDate } from '@/lib/calculations'
 
@@ -19,6 +18,24 @@ interface ExpensesViewProps {
   onNewExpense: () => void
   onToggleStatus: (id: string) => void
   onDeleteConfirm: (confirm: DeleteConfirm) => void
+}
+
+const ClassificationBadge = ({ classification }: { classification?: string }) => {
+  if (!classification || classification === 'outros') return null
+  if (classification === 'agua') {
+    return (
+      <Badge variant="outline" className="gap-1 border-blue-300 text-blue-600 bg-blue-50 dark:bg-blue-950/20 text-[10px] py-0">
+        <Drop size={10} weight="fill" />
+        Água
+      </Badge>
+    )
+  }
+  return (
+    <Badge variant="outline" className="gap-1 border-yellow-400 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/20 text-[10px] py-0">
+      <Lightning size={10} weight="fill" />
+      Energia
+    </Badge>
+  )
 }
 
 export function ExpensesView({
@@ -54,6 +71,7 @@ export function ExpensesView({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-28">Nº Despesa</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Credor</TableHead>
                   <TableHead>Valor</TableHead>
@@ -69,7 +87,17 @@ export function ExpensesView({
                   const creditor = creditors.find((c) => c.id === expense.creditorId)
                   return (
                     <TableRow key={expense.id}>
-                      <TableCell className="font-medium">{expense.description}</TableCell>
+                      <TableCell>
+                        <span className="font-mono text-sm font-semibold text-primary">
+                          {expense.number || '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col gap-0.5">
+                          <span>{expense.description}</span>
+                          <ClassificationBadge classification={expense.classification} />
+                        </div>
+                      </TableCell>
                       <TableCell>{creditor?.name || '-'}</TableCell>
                       <TableCell className="tabular-nums font-semibold">
                         {formatCurrency(expense.amount)}
@@ -108,7 +136,7 @@ export function ExpensesView({
                             onDeleteConfirm({
                               type: 'expense',
                               id: expense.id,
-                              label: expense.description,
+                              label: `${expense.number ? expense.number + ' – ' : ''}${expense.description}`,
                             })
                           }
                         >

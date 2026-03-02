@@ -108,6 +108,15 @@ function AppContent() {
   }
 
   // â”€â”€ Handlers: Despesas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Número sequencial de despesa ─────────────────────────
+  const nextExpenseNumber = (() => {
+    const year = new Date().getFullYear()
+    const thisYear = expenses.filter((e) => e.number?.endsWith(`/${year}`))
+    if (!thisYear.length) return `0001/${year}`
+    const max = Math.max(...thisYear.map((e) => parseInt(e.number?.split('/')[0] || '0') || 0))
+    return `${String(max + 1).padStart(4, '0')}/${year}`
+  })()
+
   const handleSaveExpense = async (
     expenseData: Omit<Expense, 'id' | 'createdAt'>,
     consumedItems: ConsumedItemEntry[] = []
@@ -419,6 +428,7 @@ function AppContent() {
         creditors={creditors}
         contracts={contracts}
         categories={categories}
+        nextNumber={nextExpenseNumber}
       />
 
       <CreditorFormDialog

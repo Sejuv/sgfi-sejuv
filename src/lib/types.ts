@@ -23,12 +23,17 @@ export interface Creditor {
 
 export type ExpenseType = 'fixed' | 'variable'
 export type ExpenseStatus = 'paid' | 'pending' | 'overdue'
+export type ExpenseClassification = 'agua' | 'energia' | 'outros'
 
 export interface Expense {
   id: string
+  number?: string                      // e.g. "0001/2026"
   description: string
   amount: number
   type: ExpenseType
+  classification?: ExpenseClassification
+  customerNumber?: string              // nº do cliente (água/energia)
+  installationNumber?: string          // nº da instalação (água/energia)
   dueDate: string
   month: string
   status: ExpenseStatus

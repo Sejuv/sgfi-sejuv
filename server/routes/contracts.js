@@ -94,7 +94,7 @@ router.patch('/:id/items/:itemId/consumed', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await col().doc(req.params.id).delete()
-    res.status(204).end()
+    res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 

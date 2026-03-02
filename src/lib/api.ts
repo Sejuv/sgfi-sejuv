@@ -14,10 +14,20 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     headers: { 'Content-Type': 'application/json' },
     body:    body ? JSON.stringify(body) : undefined,
   })
+  // Resposta sem conteúdo
   if (res.status === 204) return undefined as T
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Erro na requisição')
-  return data
+  // Lê o corpo como texto para evitar erro se estiver vazio
+  const text = await res.text()
+  if (!text) return undefined as T
+  let data: any
+  try {
+    data = JSON.parse(text)
+  } catch {
+    if (res.ok) return undefined as T
+    throw new Error(`Erro ${res.status}`)
+  }
+  if (!res.ok) throw new Error(data?.error || data?.message || 'Erro na requisição')
+  return data as T
 }
 
 // ── Auth / Usuários ───────────────────────────────────────────

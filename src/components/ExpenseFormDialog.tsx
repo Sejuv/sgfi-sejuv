@@ -9,8 +9,8 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarBlank, MagnifyingGlass, Warning, CheckCircle } from '@phosphor-icons/react'
-import { Expense, Creditor, ExpenseType, ExpenseStatus, Contract, ContractItem } from '@/lib/types'
+import { CalendarBlank, MagnifyingGlass, Warning, CheckCircle, Drop, Lightning } from '@phosphor-icons/react'
+import { Expense, Creditor, ExpenseType, ExpenseStatus, ExpenseClassification, Contract, ContractItem } from '@/lib/types'
 import { formatCurrency } from '@/lib/calculations'
 import { toast } from 'sonner'
 import { FloatingWindow } from '@/components/FloatingWindow'
@@ -28,6 +28,14 @@ interface ExpenseFormDialogProps {
   contracts: Contract[]
   categories?: { id: string; name: string }[]
   expense?: Expense
+  /** Próximo número sequencial sugerido, ex: "0003/2026" */
+  nextNumber?: string
+}
+
+const CLASSIFICATION_LABELS: Record<ExpenseClassification, string> = {
+  agua:    'Água',
+  energia: 'Energia',
+  outros:  'Outros',
 }
 
 export function ExpenseFormDialog({
@@ -37,34 +45,90 @@ export function ExpenseFormDialog({
   creditors,
   contracts,
   expense,
+  nextNumber,
 }: ExpenseFormDialogProps) {
-  // Contrato selecionado
-  const [contractSearch, setContractSearch] = useState('')
-  const [selectedContractId, setSelectedContractId] = useState(expense?.contractId || '')
-  const [showContractList, setShowContractList] = useState(false)
+  // ── Número / identificação ─────────────────────────────────
+  const [expenseNumber, setExpenseNumber] = useState(expense?.number || nextNumber || '')
 
-  // Quantidades por item do contrato
+  // ── Classificação ──────────────────────────────────────────
+  const [classification, setClassification] = useState<ExpenseClassification>(
+    expense?.classification || 'outros'
+  )
+  const [customerNumber,     setCustomerNumber]     = useState(expense?.customerNumber     || '')
+  const [installationNumber, setInstallationNumber] = useState(expense?.installationNumber || '')
+
+  // ── Contrato ───────────────────────────────────────────────
+  const [contractSearch,     setContractSearch]     = useState('')
+  const [selectedContractId, setSelectedContractId] = useState(expense?.contractId || '')
+  const [showContractList,   setShowContractList]   = useState(false)
+
+  // ── Itens do contrato ──────────────────────────────────────
   const [itemQtys, setItemQtys] = useState<Record<string, string>>({})
 
-  // Demais campos
-  const [type, setType] = useState<ExpenseType>(expense?.type || 'fixed')
-  const [dueDate, setDueDate] = useState<Date | undefined>(
+  // ── Valor manual (para água / energia) ────────────────────
+  const [manualAmount, setManualAmount] = useState(
+    expense && (expense.classification === 'agua' || expense.classification === 'energia')
+      ? String(expense.amount)
+      : ''
+  )
+
+  // ── Demais campos ──────────────────────────────────────────
+  const [type,       setType]       = useState<ExpenseType>(expense?.type   || 'variable')
+  const [dueDate,    setDueDate]    = useState<Date | undefined>(
     expense?.dueDate ? new Date(expense.dueDate) : undefined
   )
-  const [month, setMonth] = useState(expense?.month || '')
-  const [status, setStatus] = useState<ExpenseStatus>(expense?.status || 'pending')
+  const [month,      setMonth]      = useState(expense?.month   || '')
+  const [status,     setStatus]     = useState<ExpenseStatus>(expense?.status || 'pending')
   const [creditorId, setCreditorId] = useState(expense?.creditorId || '')
 
-  // Controle de alterações não salvas
+  // ── Controle de alterações não salvas ──────────────────────
   const [isDirty, setIsDirty] = useState(false)
 
-  // Contrato selecionado
+  const isUtility = classification === 'agua' || classification === 'energia'
+
+  // Sincroniza nextNumber quando não há expense em edição
+  useEffect(() => {
+    if (!expense && nextNumber) setExpenseNumber(nextNumber)
+  }, [nextNumber, expense])
+
+  // Reinicializa ao abrir em modo edição
+  useEffect(() => {
+    if (open && expense) {
+      setExpenseNumber(expense.number || '')
+      setClassification(expense.classification || 'outros')
+      setCustomerNumber(expense.customerNumber || '')
+      setInstallationNumber(expense.installationNumber || '')
+      setSelectedContractId(expense.contractId || '')
+      setContractSearch(
+        expense.contractId
+          ? (() => {
+              const c = contracts.find(x => x.id === expense.contractId)
+              return c ? `${c.number} – ${c.description}` : ''
+            })()
+          : ''
+      )
+      setItemQtys({})
+      setManualAmount(
+        expense.classification === 'agua' || expense.classification === 'energia'
+          ? String(expense.amount)
+          : ''
+      )
+      setType(expense.type || 'variable')
+      setDueDate(expense.dueDate ? new Date(expense.dueDate) : undefined)
+      setMonth(expense.month || '')
+      setStatus(expense.status || 'pending')
+      setCreditorId(expense.creditorId || '')
+      setIsDirty(false)
+    }
+  }, [open, expense])
+
+  // ── Contrato selecionado ───────────────────────────────────
   const selectedContract = useMemo(
     () => contracts.find((c) => c.id === selectedContractId) || null,
     [contracts, selectedContractId]
   )
 
-  // Filtro de contratos na busca
+  // ── Filtro de contratos ────────────────────────────────────
   const filteredContracts = useMemo(() => {
     const q = contractSearch.toLowerCase()
     if (!q) return contracts
@@ -76,7 +140,7 @@ export function ExpenseFormDialog({
     )
   }, [contracts, creditors, contractSearch])
 
-  // Ao selecionar contrato, preenche credor automaticamente
+  // Ao selecionar contrato → preenche credor
   useEffect(() => {
     if (selectedContract) {
       setCreditorId(selectedContract.creditorId)
@@ -84,13 +148,10 @@ export function ExpenseFormDialog({
     }
   }, [selectedContract])
 
-  // Calcula saldo disponível de cada item
-  const itemBalance = (item: ContractItem) => {
-    const consumed = item.consumed ?? 0
-    return item.quantity - consumed
-  }
+  // ── Saldo de item ──────────────────────────────────────────
+  const itemBalance = (item: ContractItem) => (item.quantity - (item.consumed ?? 0))
 
-  // Calcula o valor total a partir das quantidades informadas
+  // ── Valor total computado (modo contrato) ──────────────────
   const computedAmount = useMemo(() => {
     if (!selectedContract) return 0
     return selectedContract.items.reduce((acc, item) => {
@@ -99,6 +160,10 @@ export function ExpenseFormDialog({
     }, 0)
   }, [selectedContract, itemQtys])
 
+  // ── Valor final da despesa ─────────────────────────────────
+  const finalAmount = isUtility ? (parseFloat(manualAmount) || 0) : computedAmount
+
+  // ── Handlers ──────────────────────────────────────────────
   const handleSelectContract = (contract: Contract) => {
     setSelectedContractId(contract.id)
     setContractSearch(`${contract.number} – ${contract.description}`)
@@ -121,69 +186,81 @@ export function ExpenseFormDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedContractId || !selectedContract) {
-      toast.error('Selecione um contrato')
+    if (!expenseNumber.trim()) {
+      toast.error('Número da despesa é obrigatório')
       return
     }
 
-    if (computedAmount <= 0) {
-      toast.error('Informe a quantidade de pelo menos um item')
-      return
-    }
-
-    // Valida saldos
-    for (const item of selectedContract.items) {
-      const qty = parseFloat(itemQtys[item.id] || '0') || 0
-      if (qty < 0) { toast.error(`Quantidade inválida para "${item.description}"`); return }
-      if (qty > itemBalance(item)) {
-        toast.error(`Saldo insuficiente para "${item.description}". Disponível: ${itemBalance(item)} ${item.unit}`)
+    if (isUtility) {
+      if (finalAmount <= 0) {
+        toast.error('Informe o valor da fatura')
         return
+      }
+    } else {
+      if (!selectedContractId || !selectedContract) {
+        toast.error('Selecione um contrato')
+        return
+      }
+      if (computedAmount <= 0) {
+        toast.error('Informe a quantidade de pelo menos um item')
+        return
+      }
+      for (const item of selectedContract.items) {
+        const qty = parseFloat(itemQtys[item.id] || '0') || 0
+        if (qty < 0) { toast.error(`Quantidade inválida para "${item.description}"`); return }
+        if (qty > itemBalance(item)) {
+          toast.error(`Saldo insuficiente para "${item.description}". Disponível: ${itemBalance(item)} ${item.unit}`)
+          return
+        }
       }
     }
 
-    if (!dueDate) {
-      toast.error('Data de vencimento é obrigatória')
-      return
-    }
+    if (!dueDate) { toast.error('Data de vencimento é obrigatória'); return }
+    if (!creditorId) { toast.error('Selecione um credor'); return }
+    if (!month.trim()) { toast.error('Mês de referência é obrigatório'); return }
 
-    if (!creditorId) {
-      toast.error('Selecione um credor')
-      return
-    }
+    const consumedItems: ConsumedItemEntry[] = !isUtility && selectedContract
+      ? selectedContract.items
+          .filter((item) => (parseFloat(itemQtys[item.id] || '0') || 0) > 0)
+          .map((item) => ({ itemId: item.id, qty: parseFloat(itemQtys[item.id]) }))
+      : []
 
-    if (!month.trim()) {
-      toast.error('Mês de referência é obrigatório')
-      return
-    }
-
-    const consumedItems: ConsumedItemEntry[] = selectedContract.items
-      .filter((item) => (parseFloat(itemQtys[item.id] || '0') || 0) > 0)
-      .map((item) => ({ itemId: item.id, qty: parseFloat(itemQtys[item.id]) }))
+    const description = isUtility
+      ? `${CLASSIFICATION_LABELS[classification]}${customerNumber ? ` – Nº ${customerNumber}` : ''}`
+      : `${selectedContract!.number} – ${selectedContract!.description}`
 
     onSave(
       {
-        description: `${selectedContract.number} – ${selectedContract.description}`,
-        amount: computedAmount,
+        number:             expenseNumber.trim(),
+        description,
+        amount:             finalAmount,
         type,
-        dueDate: dueDate.toISOString(),
+        classification,
+        customerNumber:     isUtility ? (customerNumber || undefined)     : undefined,
+        installationNumber: isUtility ? (installationNumber || undefined) : undefined,
+        dueDate:            dueDate.toISOString(),
         month,
         status,
         creditorId,
-        contractId: selectedContractId,
-        paidAt: status === 'paid' ? new Date().toISOString() : undefined,
+        contractId:         selectedContractId || undefined,
+        paidAt:             status === 'paid' ? new Date().toISOString() : undefined,
       },
       consumedItems
     )
 
-    // Reset
     handleClose()
   }
 
   const handleClose = () => {
+    setExpenseNumber('')
+    setClassification('outros')
+    setCustomerNumber('')
+    setInstallationNumber('')
     setSelectedContractId('')
     setContractSearch('')
     setItemQtys({})
-    setType('fixed')
+    setManualAmount('')
+    setType('variable')
     setDueDate(undefined)
     setMonth('')
     setStatus('pending')
@@ -204,9 +281,115 @@ export function ExpenseFormDialog({
         <div className="flex-1 overflow-auto">
           <div className="grid gap-4">
 
+            {/* ── Número da Despesa ── */}
+            <div className="grid gap-2">
+              <Label htmlFor="expenseNumber">Número da Despesa</Label>
+              <Input
+                id="expenseNumber"
+                placeholder="0001/2026"
+                value={expenseNumber}
+                onChange={(e) => { setExpenseNumber(e.target.value); setIsDirty(true) }}
+                className="font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Gerado automaticamente. Pode ser editado conforme necessário.
+              </p>
+            </div>
+
+            <Separator />
+
+            {/* ── Classificação ── */}
+            <div className="grid gap-2">
+              <Label htmlFor="classification">Classificação da Despesa</Label>
+              <Select
+                value={classification}
+                onValueChange={(v) => { setClassification(v as ExpenseClassification); setIsDirty(true) }}
+              >
+                <SelectTrigger id="classification">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="agua">
+                    <span className="flex items-center gap-2">
+                      <Drop size={14} className="text-blue-500" weight="fill" />
+                      Água
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="energia">
+                    <span className="flex items-center gap-2">
+                      <Lightning size={14} className="text-yellow-500" weight="fill" />
+                      Energia
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* ── Campos específicos de Água / Energia ── */}
+            {isUtility && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="customerNumber">Nº do Cliente</Label>
+                    <Input
+                      id="customerNumber"
+                      placeholder="ex: 123456789"
+                      value={customerNumber}
+                      onChange={(e) => { setCustomerNumber(e.target.value); setIsDirty(true) }}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="installationNumber">Nº da Instalação</Label>
+                    <Input
+                      id="installationNumber"
+                      placeholder="ex: 987654321"
+                      value={installationNumber}
+                      onChange={(e) => { setInstallationNumber(e.target.value); setIsDirty(true) }}
+                    />
+                  </div>
+                </div>
+
+                {/* Valor direto para água/energia */}
+                <div className="grid gap-2">
+                  <Label htmlFor="manualAmount">
+                    Valor da Fatura
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">
+                      (conforme consumo do mês)
+                    </span>
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">R$</span>
+                    <Input
+                      id="manualAmount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={manualAmount}
+                      onChange={(e) => { setManualAmount(e.target.value); setIsDirty(true) }}
+                      className="pl-9"
+                    />
+                  </div>
+                  {finalAmount > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Total: <span className="font-semibold text-foreground">{formatCurrency(finalAmount)}</span>
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            <Separator />
+
             {/* ── Seleção de Contrato ── */}
             <div className="grid gap-2">
-              <Label>Contrato</Label>
+              <Label>
+                Contrato
+                {isUtility && (
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional – para fins de controle)</span>
+                )}
+              </Label>
               <div className="relative">
                 <div className="relative">
                   <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
@@ -218,6 +401,7 @@ export function ExpenseFormDialog({
                       setContractSearch(e.target.value)
                       setShowContractList(true)
                       if (!e.target.value) setSelectedContractId('')
+                      setIsDirty(true)
                     }}
                     onFocus={() => setShowContractList(true)}
                     onBlur={() => setTimeout(() => setShowContractList(false), 180)}
@@ -277,10 +461,13 @@ export function ExpenseFormDialog({
               )}
             </div>
 
-            {/* ── Itens do Contrato ── */}
-            {selectedContract && selectedContract.items.length > 0 && (
+            {/* ── Itens do Contrato (somente para "outros") ── */}
+            {!isUtility && selectedContract && selectedContract.items.length > 0 && (
               <div className="grid gap-2">
-                <Label>Itens do Contrato <span className="text-muted-foreground font-normal">(informe a quantidade consumida)</span></Label>
+                <Label>
+                  Itens do Contrato{' '}
+                  <span className="text-muted-foreground font-normal">(informe a quantidade consumida)</span>
+                </Label>
                 <div className="rounded-md border overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50">
@@ -316,7 +503,9 @@ export function ExpenseFormDialog({
                               </span>
                               <span className="text-muted-foreground text-xs ml-0.5">/{item.quantity}</span>
                             </td>
-                            <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(item.unitPrice)}</td>
+                            <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                              {formatCurrency(item.unitPrice)}
+                            </td>
                             <td className="px-3 py-2">
                               <Input
                                 type="number"
@@ -340,7 +529,9 @@ export function ExpenseFormDialog({
                     <tfoot className="bg-muted/30 border-t-2">
                       <tr>
                         <td colSpan={5} className="px-3 py-2 text-right font-semibold">Total desta despesa:</td>
-                        <td className="px-3 py-2 text-right tabular-nums font-bold text-primary">{formatCurrency(computedAmount)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums font-bold text-primary">
+                          {formatCurrency(computedAmount)}
+                        </td>
                       </tr>
                     </tfoot>
                   </table>
@@ -354,7 +545,7 @@ export function ExpenseFormDialog({
               </div>
             )}
 
-            {selectedContract && selectedContract.items.length === 0 && (
+            {!isUtility && selectedContract && selectedContract.items.length === 0 && (
               <div className="rounded-md border border-orange-300 bg-orange-50 dark:bg-orange-950/20 px-4 py-3 text-sm text-orange-700 flex items-center gap-2">
                 <Warning size={15} />
                 Este contrato não possui itens cadastrados.
@@ -426,18 +617,10 @@ export function ExpenseFormDialog({
                   <SelectValue placeholder="Selecione o mês" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Janeiro">Janeiro</SelectItem>
-                  <SelectItem value="Fevereiro">Fevereiro</SelectItem>
-                  <SelectItem value="Março">Março</SelectItem>
-                  <SelectItem value="Abril">Abril</SelectItem>
-                  <SelectItem value="Maio">Maio</SelectItem>
-                  <SelectItem value="Junho">Junho</SelectItem>
-                  <SelectItem value="Julho">Julho</SelectItem>
-                  <SelectItem value="Agosto">Agosto</SelectItem>
-                  <SelectItem value="Setembro">Setembro</SelectItem>
-                  <SelectItem value="Outubro">Outubro</SelectItem>
-                  <SelectItem value="Novembro">Novembro</SelectItem>
-                  <SelectItem value="Dezembro">Dezembro</SelectItem>
+                  {['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -463,7 +646,14 @@ export function ExpenseFormDialog({
           <Button type="button" variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={computedAmount <= 0 || !selectedContractId}>
+          <Button
+            type="submit"
+            disabled={
+              isUtility
+                ? finalAmount <= 0 || !creditorId
+                : computedAmount <= 0 || !selectedContractId
+            }
+          >
             Salvar
           </Button>
         </div>
