@@ -1,8 +1,8 @@
-import { Expense, MonthlyData, DashboardMetrics } from './types'
+import { Expense, MonthlyData, DashboardMetrics, Contract } from './types'
 
 export function calculateDashboardMetrics(
   expenses: Expense[],
-  availableBalance: number
+  contracts: Contract[]
 ): DashboardMetrics {
   const now = new Date()
   const currentMonth = now.getMonth()
@@ -28,6 +28,23 @@ export function calculateDashboardMetrics(
     const dueDate = new Date(expense.dueDate)
     return dueDate >= now && dueDate <= sevenDaysFromNow
   }).length
+
+  // Saldo calculado dos contratos ativos
+  const totalContracted = contracts
+    .filter((c) => c.status === 'active')
+    .reduce(
+      (sum, contract) =>
+        sum + contract.items.reduce((s, item) => s + item.quantity * item.unitPrice, 0),
+      0
+    )
+  const totalConsumed = contracts
+    .filter((c) => c.status === 'active')
+    .reduce(
+      (sum, contract) =>
+        sum + contract.items.reduce((s, item) => s + item.consumed * item.unitPrice, 0),
+      0
+    )
+  const availableBalance = totalContracted - totalConsumed
 
   return {
     totalSpentThisMonth,
@@ -112,4 +129,39 @@ export function getExpensesByType(expenses: Expense[]) {
     { name: 'Fixos', value: fixed },
     { name: 'Variáveis', value: variable },
   ]
+}
+
+export function getExpensesByClassification(expenses: Expense[]) {
+  const agua = expenses.filter((e) => e.classification === 'agua').reduce((sum, e) => sum + e.amount, 0)
+  const energia = expenses.filter((e) => e.classification === 'energia').reduce((sum, e) => sum + e.amount, 0)
+  const outros = expenses.filter((e) => !e.classification || e.classification === 'outros').reduce((sum, e) => sum + e.amount, 0)
+
+  return [
+    { name: 'Água', value: agua },
+    { name: 'Energia', value: energia },
+    { name: 'Outros', value: outros },
+  ].filter((d) => d.value > 0)
+}
+
+export function getContractStats(contracts: Contract[]) {
+  const active = contracts.filter((c) => c.status === 'active')
+  const totalValue = active.reduce(
+    (sum, c) => sum + c.items.reduce((s, item) => s + item.quantity * item.unitPrice, 0),
+    0
+  )
+  const consumedValue = active.reduce(
+    (sum, c) => sum + c.items.reduce((s, item) => s + item.consumed * item.unitPrice, 0),
+    0
+  )
+
+  const now = new Date()
+  const thirtyDays = new Date()
+  thirtyDays.setDate(thirtyDays.getDate() + 30)
+  const expiringSoon = contracts.filter((c) => {
+    if (c.status !== 'active') return false
+    const end = new Date(c.endDate)
+    return end >= now && end <= thirtyDays
+  })
+
+  return { activeCount: active.length, totalValue, consumedValue, expiringSoon }
 }

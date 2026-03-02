@@ -69,6 +69,7 @@ function AppContent() {
 
   // Diálogos
   const [expenseDialogOpen,       setExpenseDialogOpen]       = useState(false)
+  const [editingExpense,          setEditingExpense]          = useState<Expense | null>(null)
   const [creditorDialogOpen,      setCreditorDialogOpen]      = useState(false)
   const [editingCreditor,         setEditingCreditor]         = useState<Creditor | null>(null)
   const [contractDialogOpen,      setContractDialogOpen]      = useState(false)
@@ -121,6 +122,19 @@ function AppContent() {
     expenseData: Omit<Expense, 'id' | 'createdAt'>,
     consumedItems: ConsumedItemEntry[] = []
   ) => {
+    // ── EDIÇÃO ──────────────────────────────────────────────
+    if (editingExpense) {
+      try {
+        const updated: Expense = { ...editingExpense, ...expenseData }
+        const saved = await expensesApi.update(editingExpense.id, updated)
+        setExpenses((prev) => prev.map((e) => (e.id === saved.id ? saved : e)))
+        toast.success('Despesa atualizada com sucesso!')
+      } catch (e: any) { toast.error(e.message) }
+      setEditingExpense(null)
+      return
+    }
+
+    // ── CRIAÇÃO ──────────────────────────────────────────────
     const newExpense: Expense = {
       ...expenseData,
       id: `expense_${Date.now()}`,
@@ -263,13 +277,14 @@ function AppContent() {
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard expenses={updatedExpenses} creditors={creditors} />
+        return <Dashboard expenses={updatedExpenses} creditors={creditors} contracts={contracts} />
       case 'expenses':
         return (
           <ExpensesView
             expenses={updatedExpenses}
             creditors={creditors}
-            onNewExpense={() => setExpenseDialogOpen(true)}
+            onNewExpense={() => { setEditingExpense(null); setExpenseDialogOpen(true) }}
+            onEditExpense={(e) => { setEditingExpense(e); setExpenseDialogOpen(true) }}
             onToggleStatus={handleToggleExpenseStatus}
             onDeleteConfirm={setDeleteConfirm}
           />
@@ -423,12 +438,13 @@ function AppContent() {
       {/* Diálogos globais */}
       <ExpenseFormDialog
         open={expenseDialogOpen}
-        onOpenChange={setExpenseDialogOpen}
+        onOpenChange={(v) => { setExpenseDialogOpen(v); if (!v) setEditingExpense(null) }}
         onSave={handleSaveExpense}
         creditors={creditors}
         contracts={contracts}
         categories={categories}
         nextNumber={nextExpenseNumber}
+        expense={editingExpense ?? undefined}
       />
 
       <CreditorFormDialog

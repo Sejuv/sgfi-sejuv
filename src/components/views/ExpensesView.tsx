@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Wallet, Trash, Drop, Lightning } from '@phosphor-icons/react'
+import { Plus, Wallet, Trash, Drop, Lightning, PencilSimple } from '@phosphor-icons/react'
 import { Expense, Creditor } from '@/lib/types'
 import { formatCurrency, formatDate } from '@/lib/calculations'
 
@@ -16,6 +16,7 @@ interface ExpensesViewProps {
   expenses: Expense[]
   creditors: Creditor[]
   onNewExpense: () => void
+  onEditExpense: (expense: Expense) => void
   onToggleStatus: (id: string) => void
   onDeleteConfirm: (confirm: DeleteConfirm) => void
 }
@@ -42,6 +43,7 @@ export function ExpensesView({
   expenses,
   creditors,
   onNewExpense,
+  onEditExpense,
   onToggleStatus,
   onDeleteConfirm,
 }: ExpensesViewProps) {
@@ -129,19 +131,30 @@ export function ExpensesView({
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            onDeleteConfirm({
-                              type: 'expense',
-                              id: expense.id,
-                              label: `${expense.number ? expense.number + ' – ' : ''}${expense.description}`,
-                            })
-                          }
-                        >
-                          <Trash size={16} className="text-destructive" />
-                        </Button>
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onEditExpense(expense)}
+                            title="Editar despesa"
+                          >
+                            <PencilSimple size={15} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              onDeleteConfirm({
+                                type: 'expense',
+                                id: expense.id,
+                                label: `${expense.number ? expense.number + ' – ' : ''}${expense.description}`,
+                              })
+                            }
+                            title="Excluir despesa"
+                          >
+                            <Trash size={16} className="text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )

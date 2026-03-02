@@ -48,7 +48,10 @@ export function ExpenseFormDialog({
   nextNumber,
 }: ExpenseFormDialogProps) {
   // ── Número / identificação ─────────────────────────────────
-  const [expenseNumber, setExpenseNumber] = useState(expense?.number || nextNumber || '')
+  // Em criação: usa nextNumber sugerido; em edição: usa o número já salvo (ou vazio)
+  const [expenseNumber, setExpenseNumber] = useState(
+    expense ? (expense.number || '') : (nextNumber || '')
+  )
 
   // ── Classificação ──────────────────────────────────────────
   const [classification, setClassification] = useState<ExpenseClassification>(
