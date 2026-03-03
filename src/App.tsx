@@ -284,6 +284,8 @@ function AppContent() {
           <ExpensesView
             expenses={updatedExpenses}
             creditors={creditors}
+            categories={categories}
+            contracts={contracts}
             onNewExpense={() => { setEditingExpense(null); setExpenseDialogOpen(true) }}
             onEditExpense={(e) => { setEditingExpense(e); setExpenseDialogOpen(true) }}
             onToggleStatus={handleToggleExpenseStatus}
