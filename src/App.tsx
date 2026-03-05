@@ -115,13 +115,13 @@ function App() {
 
   const processosFiltrados = useMemo(() => {
     return processosArray.filter((processo) => {
-      if (filtros.ano && processo.ano !== filtros.ano) return false
-      if (filtros.secretaria && processo.secretaria !== filtros.secretaria) return false
-      if (filtros.mes && processo.mes !== filtros.mes) return false
-      if (filtros.recurso && processo.recurso !== filtros.recurso) return false
-      if (filtros.credor && processo.credor !== filtros.credor) return false
-      if (filtros.objeto && processo.objeto !== filtros.objeto) return false
-      if (filtros.tipoConta && processo.conta !== filtros.tipoConta) return false
+      if (filtros.anos && filtros.anos.length > 0 && !filtros.anos.includes(processo.ano)) return false
+      if (filtros.secretarias && filtros.secretarias.length > 0 && !filtros.secretarias.includes(processo.secretaria)) return false
+      if (filtros.meses && filtros.meses.length > 0 && !filtros.meses.includes(processo.mes)) return false
+      if (filtros.recursos && filtros.recursos.length > 0 && !filtros.recursos.includes(processo.recurso)) return false
+      if (filtros.credores && filtros.credores.length > 0 && !filtros.credores.includes(processo.credor)) return false
+      if (filtros.objetos && filtros.objetos.length > 0 && !filtros.objetos.includes(processo.objeto)) return false
+      if (filtros.tiposConta && filtros.tiposConta.length > 0 && !filtros.tiposConta.includes(processo.conta)) return false
       if (filtros.did && (!processo.did || !processo.did.toLowerCase().includes(filtros.did.toLowerCase()))) return false
       if (filtros.nf && (!processo.nf || !processo.nf.toLowerCase().includes(filtros.nf.toLowerCase()))) return false
       if (filtros.apenaspendentes && processo.dataTesouraria) return false

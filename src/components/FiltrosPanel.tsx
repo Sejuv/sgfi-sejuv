@@ -1,24 +1,24 @@
 import { useMemo } from "react"
 import { useFirebaseKV } from "@/hooks/useFirebaseKV"
 import { Card } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { MultiSelect } from "@/components/ui/multi-select"
 import { Secretaria, Recurso, Credor, Objeto } from "@/lib/cadastros-types"
 import { ProcessoDespesa } from "@/lib/types"
 import { MESES } from "@/lib/constants"
 import { Funnel, X } from "@phosphor-icons/react"
 
 export interface Filtros {
-  ano?: number
-  secretaria?: string
-  mes?: string
-  recurso?: string
-  credor?: string
-  objeto?: string
-  tipoConta?: string
+  anos?: number[]
+  secretarias?: string[]
+  meses?: string[]
+  recursos?: string[]
+  credores?: string[]
+  objetos?: string[]
+  tiposConta?: string[]
   did?: string
   nf?: string
   apenaspendentes: boolean
@@ -73,7 +73,17 @@ export function FiltrosPanel({ filtros, onFiltrosChange, processos }: FiltrosPan
     })
   }
 
-  const temFiltrosAtivos = filtros.ano || filtros.secretaria || filtros.mes || filtros.recurso || filtros.credor || filtros.objeto || filtros.tipoConta || filtros.did || filtros.nf || filtros.apenaspendentes
+  const temFiltrosAtivos = 
+    (filtros.anos && filtros.anos.length > 0) ||
+    (filtros.secretarias && filtros.secretarias.length > 0) ||
+    (filtros.meses && filtros.meses.length > 0) ||
+    (filtros.recursos && filtros.recursos.length > 0) ||
+    (filtros.credores && filtros.credores.length > 0) ||
+    (filtros.objetos && filtros.objetos.length > 0) ||
+    (filtros.tiposConta && filtros.tiposConta.length > 0) ||
+    filtros.did ||
+    filtros.nf ||
+    filtros.apenaspendentes
 
   return (
     <Card className="p-3">
@@ -93,156 +103,86 @@ export function FiltrosPanel({ filtros, onFiltrosChange, processos }: FiltrosPan
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-2">
         <div className="space-y-1">
           <Label htmlFor="filtro-ano" className="text-xs">Ano</Label>
-          <Select
-            value={filtros.ano ? String(filtros.ano) : "todos"}
-            onValueChange={(value) => 
-              onFiltrosChange({ ...filtros, ano: value === "todos" ? undefined : parseInt(value) })
+          <MultiSelect
+            options={anosDisponiveis.map(ano => ({ label: String(ano), value: String(ano) }))}
+            selected={filtros.anos?.map(String) || []}
+            onChange={(values) => 
+              onFiltrosChange({ ...filtros, anos: values.length > 0 ? values.map(Number) : undefined })
             }
-          >
-            <SelectTrigger id="filtro-ano">
-              <SelectValue placeholder="Todos os anos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os anos</SelectItem>
-              {anosDisponiveis.map((ano) => (
-                <SelectItem key={ano} value={String(ano)}>
-                  {ano}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Todos os anos"
+          />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="filtro-secretaria" className="text-xs">Secretaria</Label>
-          <Select
-            value={filtros.secretaria || "todas"}
-            onValueChange={(value) =>
-              onFiltrosChange({ ...filtros, secretaria: value === "todas" ? undefined : value })
+          <MultiSelect
+            options={secretariasOrdenadas.map(sec => ({ label: sec.nome, value: sec.nome }))}
+            selected={filtros.secretarias || []}
+            onChange={(values) =>
+              onFiltrosChange({ ...filtros, secretarias: values.length > 0 ? values : undefined })
             }
-          >
-            <SelectTrigger id="filtro-secretaria">
-              <SelectValue placeholder="Todas as secretarias" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as secretarias</SelectItem>
-              {secretariasOrdenadas.map((sec) => (
-                <SelectItem key={sec.id} value={sec.nome}>
-                  {sec.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Todas as secretarias"
+          />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="filtro-mes" className="text-xs">Mês</Label>
-          <Select
-            value={filtros.mes || "todos"}
-            onValueChange={(value) =>
-              onFiltrosChange({ ...filtros, mes: value === "todos" ? undefined : value })
+          <MultiSelect
+            options={MESES.map(mes => ({ label: mes, value: mes }))}
+            selected={filtros.meses || []}
+            onChange={(values) =>
+              onFiltrosChange({ ...filtros, meses: values.length > 0 ? values : undefined })
             }
-          >
-            <SelectTrigger id="filtro-mes">
-              <SelectValue placeholder="Todos os meses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os meses</SelectItem>
-              {MESES.map((mes) => (
-                <SelectItem key={mes} value={mes}>
-                  {mes}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Todos os meses"
+          />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="filtro-recurso" className="text-xs">Recurso</Label>
-          <Select
-            value={filtros.recurso || "todos"}
-            onValueChange={(value) =>
-              onFiltrosChange({ ...filtros, recurso: value === "todos" ? undefined : value })
+          <MultiSelect
+            options={recursosOrdenados.map(rec => ({ label: rec.nome, value: rec.nome }))}
+            selected={filtros.recursos || []}
+            onChange={(values) =>
+              onFiltrosChange({ ...filtros, recursos: values.length > 0 ? values : undefined })
             }
-          >
-            <SelectTrigger id="filtro-recurso">
-              <SelectValue placeholder="Todos os recursos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os recursos</SelectItem>
-              {recursosOrdenados.map((rec) => (
-                <SelectItem key={rec.id} value={rec.nome}>
-                  {rec.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Todos os recursos"
+          />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="filtro-credor" className="text-xs">Credor</Label>
-          <Select
-            value={filtros.credor || "todos"}
-            onValueChange={(value) =>
-              onFiltrosChange({ ...filtros, credor: value === "todos" ? undefined : value })
+          <MultiSelect
+            options={credoresOrdenados.map(credor => ({ label: credor.nome, value: credor.nome }))}
+            selected={filtros.credores || []}
+            onChange={(values) =>
+              onFiltrosChange({ ...filtros, credores: values.length > 0 ? values : undefined })
             }
-          >
-            <SelectTrigger id="filtro-credor">
-              <SelectValue placeholder="Todos os credores" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os credores</SelectItem>
-              {credoresOrdenados.map((credor) => (
-                <SelectItem key={credor.id} value={credor.nome}>
-                  {credor.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Todos os credores"
+          />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="filtro-objeto" className="text-xs">Objeto</Label>
-          <Select
-            value={filtros.objeto || "todos"}
-            onValueChange={(value) =>
-              onFiltrosChange({ ...filtros, objeto: value === "todos" ? undefined : value })
+          <MultiSelect
+            options={objetosOrdenados.map(objeto => ({ label: objeto.descricao, value: objeto.descricao }))}
+            selected={filtros.objetos || []}
+            onChange={(values) =>
+              onFiltrosChange({ ...filtros, objetos: values.length > 0 ? values : undefined })
             }
-          >
-            <SelectTrigger id="filtro-objeto">
-              <SelectValue placeholder="Todos os objetos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os objetos</SelectItem>
-              {objetosOrdenados.map((objeto) => (
-                <SelectItem key={objeto.id} value={objeto.descricao}>
-                  {objeto.descricao}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Todos os objetos"
+          />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="filtro-tipo-conta" className="text-xs">Tipo de Conta</Label>
-          <Select
-            value={filtros.tipoConta || "todos"}
-            onValueChange={(value) =>
-              onFiltrosChange({ ...filtros, tipoConta: value === "todos" ? undefined : value })
+          <MultiSelect
+            options={tiposContaDisponiveis.map(tipo => ({ label: tipo, value: tipo }))}
+            selected={filtros.tiposConta || []}
+            onChange={(values) =>
+              onFiltrosChange({ ...filtros, tiposConta: values.length > 0 ? values : undefined })
             }
-          >
-            <SelectTrigger id="filtro-tipo-conta">
-              <SelectValue placeholder="Todos os tipos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os tipos</SelectItem>
-              {tiposContaDisponiveis.map((tipo) => (
-                <SelectItem key={tipo} value={tipo}>
-                  {tipo}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Todos os tipos"
+          />
         </div>
 
         <div className="space-y-1">

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listar Usuários do Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #resultado {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .usuario {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .usuario-info {
+            margin: 5px 0;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+        .senha-hash {
+            font-size: 0.85em;
+            color: #999;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Listar Usuários do Firebase</h1>
+        <button onclick="listarUsuarios()">Carregar Usuários</button>
+        <div id="resultado"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Configuração do Firebase (mesma do projeto)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAhZSbbCRCQ5m6XA2GC0dqDXdDZCVvKbR0",
+            authDomain: "sistema-gestao-aa47f.firebaseapp.com",
+            projectId: "sistema-gestao-aa47f",
+            storageBucket: "sistema-gestao-aa47f.firebasestorage.app",
+            messagingSenderId: "896729935856",
+            appId: "1:896729935856:web:be08a6e4f1fb6bb9e8e5fd"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.listarUsuarios = async function() {
+            const resultado = document.getElementById('resultado');
+            resultado.innerHTML = '<p>⏳ Carregando usuários do Firebase...</p>';
+
+            try {
+                const docRef = doc(db, 'sistema-gestao', 'usuarios');
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const usuarios = data.data || [];
+
+                    if (usuarios.length === 0) {
+                        resultado.innerHTML = '<p>❌ Nenhum usuário encontrado no Firebase.</p>';
+                        return;
+                    }
+
+                    let html = `<h2>✅ Total de usuários: ${usuarios.length}</h2>`;
+                    html += `<p style="color: #666; font-size: 0.9em;">Última atualização: ${new Date(data.updatedAt).toLocaleString('pt-BR')}</p>`;
+
+                    usuarios.forEach((usuario, index) => {
+                        html += `
+                            <div class="usuario">
+                                <h3>${index + 1}. ${usuario.nome}</h3>
+                                <div class="usuario-info"><span class="label">ID:</span> ${usuario.id}</div>
+                                <div class="usuario-info"><span class="label">Email:</span> ${usuario.email}</div>
+                                <div class="usuario-info"><span class="label">Cargo:</span> ${usuario.cargo || 'Não informado'}</div>
+                                <div class="usuario-info"><span class="label">Status:</span> ${usuario.ativo ? '✅ Ativo' : '❌ Inativo'}</div>
+                                <div class="usuario-info"><span class="label">Data Criação:</span> ${new Date(usuario.dataCriacao).toLocaleString('pt-BR')}</div>
+                                <div class="usuario-info">
+                                    <span class="label">Permissões:</span> 
+                                    ${usuario.permissoes.map(p => `${p.modulo} (${p.nivel})`).join(', ')}
+                                </div>
+                                <div class="usuario-info">
+                                    <span class="label">Senha (hash):</span> 
+                                    <div class="senha-hash">${usuario.senha}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    resultado.innerHTML = html;
+                } else {
+                    resultado.innerHTML = '<p>❌ Documento "usuarios" não encontrado no Firebase.</p>';
+                }
+            } catch (error) {
+                resultado.innerHTML = `<p style="color: red;">❌ Erro ao buscar usuários: ${error.message}</p>`;
+                console.error('Erro:', error);
+            }
+        }
+    </script>
+</body>
+</html>

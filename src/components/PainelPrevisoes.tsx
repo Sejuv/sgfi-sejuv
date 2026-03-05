@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { MultiSelect } from "@/components/ui/multi-select"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -38,11 +39,11 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
 
   const [periodo, setPeriodo] = useState<PeriodoPrevisao>("mensal")
   const [tipoAnalise, setTipoAnalise] = useState<TipoAnalise>("geral")
-  const [filtroCredor, setFiltroCredor] = useState<string>("todos")
-  const [filtroRecurso, setFiltroRecurso] = useState<string>("todos")
-  const [filtroObjeto, setFiltroObjeto] = useState<string>("todos")
-  const [filtroSecretaria, setFiltroSecretaria] = useState<string>("todos")
-  const [filtroTipoConta, setFiltroTipoConta] = useState<string>("todos")
+  const [filtroCredores, setFiltroCredores] = useState<string[]>([])
+  const [filtroRecursos, setFiltroRecursos] = useState<string[]>([])
+  const [filtroObjetos, setFiltroObjetos] = useState<string[]>([])
+  const [filtroSecretarias, setFiltroSecretarias] = useState<string[]>([])
+  const [filtroTiposConta, setFiltroTiposConta] = useState<string[]>([])
   const [anoBase, setAnoBase] = useState<string>(new Date().getFullYear().toString())
 
   // Paleta de cores para os gráficos
@@ -93,42 +94,42 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
   // Processos filtrados
   const processosFiltrados = useMemo(() => {
     return processos.filter((p) => {
-      // Filtro por credor (compara pelo nome)
-      if (filtroCredor !== "todos" && credores && credores.length > 0) {
-        const credorSelecionado = credores.find(c => c.id === filtroCredor)
-        if (credorSelecionado && p.credor !== credorSelecionado.nome) {
+      // Filtro por credores (múltipla escolha)
+      if (filtroCredores.length > 0 && credores && credores.length > 0) {
+        const credoresNomes = filtroCredores.map(id => credores.find(c => c.id === id)?.nome).filter(Boolean)
+        if (!credoresNomes.includes(p.credor)) {
           return false
         }
       }
-      // Filtro por recurso (compara pelo nome)
-      if (filtroRecurso !== "todos" && recursos && recursos.length > 0) {
-        const recursoSelecionado = recursos.find(r => r.id === filtroRecurso)
-        if (recursoSelecionado && p.recurso !== recursoSelecionado.nome) {
+      // Filtro por recursos (múltipla escolha)
+      if (filtroRecursos.length > 0 && recursos && recursos.length > 0) {
+        const recursosNomes = filtroRecursos.map(id => recursos.find(r => r.id === id)?.nome).filter(Boolean)
+        if (!recursosNomes.includes(p.recurso)) {
           return false
         }
       }
-      // Filtro por objeto (compara pela descrição)
-      if (filtroObjeto !== "todos" && objetos && objetos.length > 0) {
-        const objetoSelecionado = objetos.find(o => o.id === filtroObjeto)
-        if (objetoSelecionado && p.objeto !== objetoSelecionado.descricao) {
+      // Filtro por objetos (múltipla escolha)
+      if (filtroObjetos.length > 0 && objetos && objetos.length > 0) {
+        const objetosDescricoes = filtroObjetos.map(id => objetos.find(o => o.id === id)?.descricao).filter(Boolean)
+        if (!objetosDescricoes.includes(p.objeto)) {
           return false
         }
       }
-      // Filtro por secretaria (compara pelo nome)
-      if (filtroSecretaria !== "todos" && secretarias && secretarias.length > 0) {
-        const secretariaSelecionada = secretarias.find(s => s.id === filtroSecretaria)
-        if (secretariaSelecionada && p.secretaria !== secretariaSelecionada.nome) {
+      // Filtro por secretarias (múltipla escolha)
+      if (filtroSecretarias.length > 0 && secretarias && secretarias.length > 0) {
+        const secretariasNomes = filtroSecretarias.map(id => secretarias.find(s => s.id === id)?.nome).filter(Boolean)
+        if (!secretariasNomes.includes(p.secretaria)) {
           return false
         }
       }
-      // Filtro por tipo de conta (compara direto)
-      if (filtroTipoConta !== "todos" && p.conta !== filtroTipoConta) {
+      // Filtro por tipos de conta (múltipla escolha)
+      if (filtroTiposConta.length > 0 && !filtroTiposConta.includes(p.conta)) {
         return false
       }
       
       return true
     })
-  }, [processos, filtroCredor, filtroRecurso, filtroObjeto, filtroSecretaria, filtroTipoConta, credores, recursos, objetos, secretarias])
+  }, [processos, filtroCredores, filtroRecursos, filtroObjetos, filtroSecretarias, filtroTiposConta, credores, recursos, objetos, secretarias])
 
   // Calcular previsões baseadas no tipo de análise
   const previsoes = useMemo((): PrevisaoDespesa[] => {
@@ -294,36 +295,42 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
   }
 
   const limparFiltros = () => {
-    setFiltroCredor("todos")
-    setFiltroRecurso("todos")
-    setFiltroObjeto("todos")
-    setFiltroSecretaria("todos")
-    setFiltroTipoConta("todos")
+    setFiltroCredores([])
+    setFiltroRecursos([])
+    setFiltroObjetos([])
+    setFiltroSecretarias([])
+    setFiltroTiposConta([])
   }
 
   const filtrosAtivos = useMemo(() => {
-    const ativos = []
-    if (filtroCredor !== "todos") {
-      const credor = credores?.find(c => c.id === filtroCredor)
-      ativos.push({ tipo: "Credor", nome: credor?.nome || filtroCredor })
-    }
-    if (filtroRecurso !== "todos") {
-      const recurso = recursos?.find(r => r.id === filtroRecurso)
-      ativos.push({ tipo: "Recurso", nome: recurso?.nome || filtroRecurso })
-    }
-    if (filtroObjeto !== "todos") {
-      const objeto = objetos?.find(o => o.id === filtroObjeto)
-      ativos.push({ tipo: "Objeto", nome: objeto?.descricao || filtroObjeto })
-    }
-    if (filtroSecretaria !== "todos") {
-      const secretaria = secretarias?.find(s => s.id === filtroSecretaria)
-      ativos.push({ tipo: "Secretaria", nome: secretaria?.nome || filtroSecretaria })
-    }
-    if (filtroTipoConta !== "todos") {
-      ativos.push({ tipo: "Tipo Conta", nome: filtroTipoConta })
-    }
+    const ativos: Array<{ tipo: string; nome: string }> = []
+    
+    filtroCredores.forEach(id => {
+      const credor = credores?.find(c => c.id === id)
+      if (credor) ativos.push({ tipo: "Credor", nome: credor.nome })
+    })
+    
+    filtroRecursos.forEach(id => {
+      const recurso = recursos?.find(r => r.id === id)
+      if (recurso) ativos.push({ tipo: "Recurso", nome: recurso.nome })
+    })
+    
+    filtroObjetos.forEach(id => {
+      const objeto = objetos?.find(o => o.id === id)
+      if (objeto) ativos.push({ tipo: "Objeto", nome: objeto.descricao })
+    })
+    
+    filtroSecretarias.forEach(id => {
+      const secretaria = secretarias?.find(s => s.id === id)
+      if (secretaria) ativos.push({ tipo: "Secretaria", nome: secretaria.nome })
+    })
+    
+    filtroTiposConta.forEach(tipo => {
+      ativos.push({ tipo: "Tipo Conta", nome: tipo })
+    })
+    
     return ativos
-  }, [filtroCredor, filtroRecurso, filtroObjeto, filtroSecretaria, filtroTipoConta, credores, recursos, objetos, secretarias])
+  }, [filtroCredores, filtroRecursos, filtroObjetos, filtroSecretarias, filtroTiposConta, credores, recursos, objetos, secretarias])
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -386,77 +393,52 @@ export function PainelPrevisoes({ processos }: PainelPrevisoesProps) {
 
               <div className="space-y-2">
                 <Label>Filtrar por Credor</Label>
-                <Select value={filtroCredor} onValueChange={setFiltroCredor}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {credores?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={credores?.map(c => ({ label: c.nome, value: c.id })) || []}
+                  selected={filtroCredores}
+                  onChange={setFiltroCredores}
+                  placeholder="Todos"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label>Filtrar por Secretaria</Label>
-                <Select value={filtroSecretaria} onValueChange={setFiltroSecretaria}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {secretarias?.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={secretarias?.map(s => ({ label: s.nome, value: s.id })) || []}
+                  selected={filtroSecretarias}
+                  onChange={setFiltroSecretarias}
+                  placeholder="Todos"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label>Filtrar por Recurso</Label>
-                <Select value={filtroRecurso} onValueChange={setFiltroRecurso}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {recursos?.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={recursos?.map(r => ({ label: r.nome, value: r.id })) || []}
+                  selected={filtroRecursos}
+                  onChange={setFiltroRecursos}
+                  placeholder="Todos"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label>Filtrar por Objeto</Label>
-                <Select value={filtroObjeto} onValueChange={setFiltroObjeto}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {objetos?.map((o) => (
-                      <SelectItem key={o.id} value={o.id}>{o.descricao}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={objetos?.map(o => ({ label: o.descricao, value: o.id })) || []}
+                  selected={filtroObjetos}
+                  onChange={setFiltroObjetos}
+                  placeholder="Todos"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label>Filtrar por Tipo de Conta</Label>
-                <Select value={filtroTipoConta} onValueChange={setFiltroTipoConta}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {tiposConta.map((tipo) => (
-                      <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={tiposConta.map(tipo => ({ label: tipo, value: tipo })) || []}
+                  selected={filtroTiposConta}
+                  onChange={setFiltroTiposConta}
+                  placeholder="Todos"
+                />
               </div>
             </div>
           </CardContent>
