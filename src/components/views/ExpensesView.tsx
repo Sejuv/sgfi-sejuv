@@ -56,8 +56,9 @@ function expenseNumberSortKey(num?: string): number {
 }
 
 // ─── Tabela com colunas redimensionáveis ──────────────────────────────────────
-
-const DEFAULT_COL_WIDTHS = [110, 260, 160, 110, 90, 105, 80, 100, 110]
+// Percentuais somam 100% — a tabela sempre ocupa toda a largura disponível
+// Índices: 0=Nº  1=Descrição  2=Credor  3=Valor  4=Tipo  5=Vencimento  6=Mês  7=Status  8=Ações
+const DEFAULT_COL_PCTS = [9, 24, 15, 9, 7, 9, 7, 9, 11]
 
 interface ResizableProps {
   sortedFiltered: Expense[]
@@ -70,20 +71,24 @@ interface ResizableProps {
 function ResizableExpensesTable({
   sortedFiltered, creditors, onEditExpense, onToggleStatus, onDeleteConfirm,
 }: ResizableProps) {
-  const [colWidths, setColWidths] = useState<number[]>([...DEFAULT_COL_WIDTHS])
-  const dragging = useRef<{ col: number; startX: number; startW: number } | null>(null)
+  const [colPcts, setColPcts] = useState<number[]>([...DEFAULT_COL_PCTS])
+  const containerRef = useRef<HTMLDivElement>(null)
+  const dragging = useRef<{ col: number; startX: number; startPct: number; nextPct: number; containerW: number } | null>(null)
 
   const onMouseDown = useCallback((col: number, e: React.MouseEvent) => {
     e.preventDefault()
-    dragging.current = { col, startX: e.clientX, startW: colWidths[col] }
+    const containerW = containerRef.current?.getBoundingClientRect().width ?? 1000
+    dragging.current = { col, startX: e.clientX, startPct: colPcts[col], nextPct: colPcts[col + 1], containerW }
 
     const onMove = (ev: MouseEvent) => {
       if (!dragging.current) return
-      const delta = ev.clientX - dragging.current.startX
-      const newW = Math.max(50, dragging.current.startW + delta)
-      setColWidths(prev => {
+      const deltaPct = ((ev.clientX - dragging.current.startX) / dragging.current.containerW) * 100
+      const newCur = Math.max(3, dragging.current.startPct + deltaPct)
+      const newNext = Math.max(3, dragging.current.nextPct - deltaPct)
+      setColPcts(prev => {
         const next = [...prev]
-        next[dragging.current!.col] = newW
+        next[dragging.current!.col] = newCur
+        next[dragging.current!.col + 1] = newNext
         return next
       })
     }
@@ -94,29 +99,28 @@ function ResizableExpensesTable({
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [colWidths])
+  }, [colPcts])
 
   const headers = ['Nº Despesa', 'Descrição', 'Credor', 'Valor', 'Tipo', 'Vencimento', 'Mês', 'Status', 'Ações']
 
   return (
-    <div className="w-full overflow-x-auto">
-      <table style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) + 'px', borderCollapse: 'collapse' }}>
+    <div ref={containerRef} className="w-full overflow-x-auto">
+      <table style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}>
         <colgroup>
-          {colWidths.map((w, i) => <col key={i} style={{ width: w + 'px' }} />)}
+          {colPcts.map((pct, i) => <col key={i} style={{ width: pct + '%' }} />)}
         </colgroup>
         <thead>
           <tr className="border-b">
             {headers.map((h, i) => (
               <th
                 key={i}
-                className="relative px-3 py-3 text-left text-sm font-medium text-muted-foreground select-none bg-background"
-                style={{ width: colWidths[i] + 'px', overflow: 'hidden' }}
+                className="relative px-3 py-3 text-left text-sm font-medium text-muted-foreground select-none bg-background overflow-hidden"
               >
                 <span className="block truncate">{h}</span>
                 {i < headers.length - 1 && (
                   <span
                     onMouseDown={(e) => onMouseDown(i, e)}
-                    className="absolute top-0 right-0 h-full w-2 cursor-col-resize flex items-center justify-center group"
+                    className="absolute top-0 right-0 h-full w-2 cursor-col-resize flex items-center justify-center group z-10"
                     title="Arraste para redimensionar"
                   >
                     <span className="w-px h-4 bg-border group-hover:bg-primary group-hover:w-0.5 transition-all" />
@@ -131,50 +135,59 @@ function ResizableExpensesTable({
             const creditor = creditors.find((c) => c.id === expense.creditorId)
             return (
               <tr key={expense.id} className="border-b hover:bg-muted/50 transition-colors">
-                <td className="px-3 py-2 align-top" style={{ width: colWidths[0] + 'px', overflow: 'hidden' }}>
-                  <span className="font-mono text-sm font-semibold text-primary break-all">
+                {/* Nº Despesa — truncate */}
+                <td className="px-3 py-2 align-top overflow-hidden">
+                  <span className="font-mono text-sm font-semibold text-primary block truncate">
                     {expense.number || '—'}
                   </span>
                 </td>
-                <td className="px-3 py-2 align-top font-medium" style={{ width: colWidths[1] + 'px', overflow: 'hidden' }}>
+                {/* Descrição — quebra de texto */}
+                <td className="px-3 py-2 align-top font-medium overflow-hidden">
                   <div className="flex flex-col gap-0.5">
                     <span className="whitespace-normal break-words leading-snug text-sm">{expense.description}</span>
                     <ClassificationBadge classification={expense.classification} />
                   </div>
                 </td>
-                <td className="px-3 py-2 align-top text-sm" style={{ width: colWidths[2] + 'px', overflow: 'hidden' }}>
+                {/* Credor — quebra de texto */}
+                <td className="px-3 py-2 align-top text-sm overflow-hidden">
                   <span className="whitespace-normal break-words leading-snug">{creditor?.name || '-'}</span>
                 </td>
-                <td className="px-3 py-2 align-top tabular-nums font-semibold text-sm" style={{ width: colWidths[3] + 'px', overflow: 'hidden' }}>
-                  <span className="break-all">{formatCurrency(expense.amount)}</span>
+                {/* Valor — truncate */}
+                <td className="px-3 py-2 align-top tabular-nums font-semibold text-sm overflow-hidden">
+                  <span className="block truncate">{formatCurrency(expense.amount)}</span>
                 </td>
-                <td className="px-3 py-2 align-top" style={{ width: colWidths[4] + 'px', overflow: 'hidden' }}>
+                {/* Tipo — truncate */}
+                <td className="px-3 py-2 align-top overflow-hidden">
                   <Badge variant="outline" className="text-xs">
                     {expense.type === 'fixed' ? 'Fixa' : 'Variável'}
                   </Badge>
                 </td>
-                <td className="px-3 py-2 align-top text-sm" style={{ width: colWidths[5] + 'px', overflow: 'hidden' }}>
-                  <span className="break-all">{formatDate(expense.dueDate)}</span>
+                {/* Vencimento — truncate */}
+                <td className="px-3 py-2 align-top text-sm overflow-hidden">
+                  <span className="block truncate">{formatDate(expense.dueDate)}</span>
                 </td>
-                <td className="px-3 py-2 align-top font-medium text-sm" style={{ width: colWidths[6] + 'px', overflow: 'hidden' }}>
-                  <span className="break-all">{expense.month}</span>
+                {/* Mês — truncate */}
+                <td className="px-3 py-2 align-top font-medium text-sm overflow-hidden">
+                  <span className="block truncate">{expense.month}</span>
                 </td>
-                <td className="px-3 py-2 align-top" style={{ width: colWidths[7] + 'px', overflow: 'hidden' }}>
+                {/* Status — truncate */}
+                <td className="px-3 py-2 align-top overflow-hidden">
                   <Badge
                     variant={expense.status === 'paid' ? 'default' : expense.status === 'overdue' ? 'destructive' : 'secondary'}
-                    className="cursor-pointer text-xs"
+                    className="cursor-pointer text-xs whitespace-nowrap"
                     onClick={() => onToggleStatus(expense.id)}
                   >
                     {expense.status === 'paid' ? 'Pago' : expense.status === 'overdue' ? 'Vencido' : 'Pendente'}
                   </Badge>
                 </td>
-                <td className="px-3 py-2 align-top" style={{ width: colWidths[8] + 'px', overflow: 'hidden' }}>
-                  <div className="flex gap-1 justify-end flex-wrap">
+                {/* Ações */}
+                <td className="px-3 py-2 align-top overflow-hidden">
+                  <div className="flex gap-1 justify-end">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onEditExpense(expense)}
-                      className="gap-1 text-primary border-primary/40 hover:bg-primary/10 h-7 text-xs px-2"
+                      className="gap-1 text-primary border-primary/40 hover:bg-primary/10 h-7 text-xs px-2 whitespace-nowrap"
                     >
                       <PencilSimple size={12} weight="bold" />
                       Editar
