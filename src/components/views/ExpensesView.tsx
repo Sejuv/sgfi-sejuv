@@ -1,0 +1,435 @@
+import { useState, useMemo } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Plus, Wallet, Trash, Drop, Lightning, PencilSimple, FunnelSimple, X } from '@phosphor-icons/react'
+import { Expense, Creditor, Category, Contract } from '@/lib/types'
+import { formatCurrency, formatDate } from '@/lib/calculations'
+
+interface DeleteConfirm {
+  type: 'expense' | 'creditor' | 'contract'
+  id: string
+  label: string
+}
+
+interface ExpensesViewProps {
+  expenses: Expense[]
+  creditors: Creditor[]
+  categories?: Category[]
+  contracts?: Contract[]
+  onNewExpense: () => void
+  onEditExpense: (expense: Expense) => void
+  onToggleStatus: (id: string) => void
+  onDeleteConfirm: (confirm: DeleteConfirm) => void
+}
+
+const ClassificationBadge = ({ classification }: { classification?: string }) => {
+  if (!classification || classification === 'outros') return null
+  if (classification === 'agua') {
+    return (
+      <Badge variant="outline" className="gap-1 border-blue-300 text-blue-600 bg-blue-50 dark:bg-blue-950/20 text-[10px] py-0">
+        <Drop size={10} weight="fill" />
+        Água
+      </Badge>
+    )
+  }
+  return (
+    <Badge variant="outline" className="gap-1 border-yellow-400 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/20 text-[10px] py-0">
+      <Lightning size={10} weight="fill" />
+      Energia
+    </Badge>
+  )
+}
+
+/** Converte "0023/2026" em número comparável: 20260023 */
+function expenseNumberSortKey(num?: string): number {
+  if (!num) return Number.MAX_SAFE_INTEGER
+  const match = num.match(/^(\d+)\/(\d+)$/)
+  if (!match) return Number.MAX_SAFE_INTEGER
+  const seq = parseInt(match[1], 10)
+  const year = parseInt(match[2], 10)
+  return year * 1_000_000 + seq
+}
+
+export function ExpensesView({
+  expenses,
+  creditors,
+  categories = [],
+  contracts = [],
+  onNewExpense,
+  onEditExpense,
+  onToggleStatus,
+  onDeleteConfirm,
+}: ExpensesViewProps) {
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterDescription, setFilterDescription] = useState('')
+  const [filterCreditor, setFilterCreditor] = useState('all')
+  const [filterContract, setFilterContract] = useState('all')
+  const [filterCategory, setFilterCategory] = useState('all')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterType, setFilterType] = useState('all')
+  const [filterValueMin, setFilterValueMin] = useState('')
+  const [filterValueMax, setFilterValueMax] = useState('')
+  const [filterMonth, setFilterMonth] = useState('')
+
+  const hasActiveFilters =
+    filterDescription !== '' ||
+    filterCreditor !== 'all' ||
+    filterContract !== 'all' ||
+    filterCategory !== 'all' ||
+    filterStatus !== 'all' ||
+    filterType !== 'all' ||
+    filterValueMin !== '' ||
+    filterValueMax !== '' ||
+    filterMonth !== ''
+
+  function clearFilters() {
+    setFilterDescription('')
+    setFilterCreditor('all')
+    setFilterContract('all')
+    setFilterCategory('all')
+    setFilterStatus('all')
+    setFilterType('all')
+    setFilterValueMin('')
+    setFilterValueMax('')
+    setFilterMonth('')
+  }
+
+  const sortedFiltered = useMemo(() => {
+    const minVal = filterValueMin !== '' ? parseFloat(filterValueMin.replace(',', '.')) : null
+    const maxVal = filterValueMax !== '' ? parseFloat(filterValueMax.replace(',', '.')) : null
+
+    return [...expenses]
+      .filter((e) => {
+        if (filterDescription && !e.description.toLowerCase().includes(filterDescription.toLowerCase())) return false
+        if (filterCreditor !== 'all' && e.creditorId !== filterCreditor) return false
+        if (filterContract !== 'all') {
+          if (filterContract === '__none__') {
+            if (e.contractId) return false
+          } else if (e.contractId !== filterContract) return false
+        }
+        if (filterCategory !== 'all') {
+          if (filterCategory === '__none__') {
+            if (e.categoryId) return false
+          } else if (e.categoryId !== filterCategory) return false
+        }
+        if (filterStatus !== 'all' && e.status !== filterStatus) return false
+        if (filterType !== 'all' && e.type !== filterType) return false
+        if (minVal !== null && !isNaN(minVal) && e.amount < minVal) return false
+        if (maxVal !== null && !isNaN(maxVal) && e.amount > maxVal) return false
+        if (filterMonth && !e.month.toLowerCase().includes(filterMonth.toLowerCase())) return false
+        return true
+      })
+      .sort((a, b) => expenseNumberSortKey(a.number) - expenseNumberSortKey(b.number))
+  }, [
+    expenses, filterDescription, filterCreditor, filterContract,
+    filterCategory, filterStatus, filterType, filterValueMin, filterValueMax, filterMonth,
+  ])
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="font-display">Gerenciar Despesas</CardTitle>
+            <CardDescription>Cadastre e acompanhe todas as despesas</CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={showFilters ? 'secondary' : 'outline'}
+              onClick={() => setShowFilters((v) => !v)}
+              className="gap-2"
+            >
+              <FunnelSimple size={16} weight="bold" />
+              Filtros
+              {hasActiveFilters && (
+                <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px]">
+                  {[
+                    filterDescription !== '',
+                    filterCreditor !== 'all',
+                    filterContract !== 'all',
+                    filterCategory !== 'all',
+                    filterStatus !== 'all',
+                    filterType !== 'all',
+                    filterValueMin !== '',
+                    filterValueMax !== '',
+                    filterMonth !== '',
+                  ].filter(Boolean).length}
+                </Badge>
+              )}
+            </Button>
+            <Button onClick={onNewExpense}>
+              <Plus className="mr-2" size={18} weight="bold" />
+              Nova Despesa
+            </Button>
+          </div>
+        </div>
+
+        {/* Painel de filtros */}
+        {showFilters && (
+          <div className="mt-4 rounded-lg border bg-muted/40 p-4 space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-semibold text-foreground">Filtros de busca</span>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground">
+                  <X size={12} />
+                  Limpar filtros
+                </Button>
+              )}
+            </div>
+
+            {/* Linha 1 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Descrição</Label>
+                <Input
+                  placeholder="Buscar por descrição..."
+                  value={filterDescription}
+                  onChange={(e) => setFilterDescription(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Credor</Label>
+                <Select value={filterCreditor} onValueChange={setFilterCreditor}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Todos os credores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os credores</SelectItem>
+                    {creditors.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Contrato</Label>
+                <Select value={filterContract} onValueChange={setFilterContract}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Todos os contratos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os contratos</SelectItem>
+                    <SelectItem value="__none__">Sem contrato</SelectItem>
+                    {contracts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.number} – {c.description}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Linha 2 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Categoria</Label>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Todas as categorias" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as categorias</SelectItem>
+                    <SelectItem value="__none__">Sem categoria</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Status</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="paid">Pago</SelectItem>
+                    <SelectItem value="overdue">Vencido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Tipo</Label>
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Todos os tipos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
+                    <SelectItem value="fixed">Fixa</SelectItem>
+                    <SelectItem value="variable">Variável</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Mês de referência</Label>
+                <Input
+                  placeholder="Ex: 03/2026"
+                  value={filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Linha 3 – valor */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Valor mínimo (R$)</Label>
+                <Input
+                  placeholder="0,00"
+                  value={filterValueMin}
+                  onChange={(e) => setFilterValueMin(e.target.value)}
+                  className="h-8 text-sm"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Valor máximo (R$)</Label>
+                <Input
+                  placeholder="0,00"
+                  value={filterValueMax}
+                  onChange={(e) => setFilterValueMax(e.target.value)}
+                  className="h-8 text-sm"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                />
+              </div>
+              <div className="col-span-2 sm:col-span-2 flex items-end pb-0.5">
+                <span className="text-xs text-muted-foreground">
+                  {sortedFiltered.length} despesa{sortedFiltered.length !== 1 ? 's' : ''} encontrada{sortedFiltered.length !== 1 ? 's' : ''}
+                  {hasActiveFilters && ` de ${expenses.length}`}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent>
+        {expenses.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Wallet size={48} className="mx-auto mb-4 opacity-50" />
+            <p>Nenhuma despesa cadastrada ainda.</p>
+            <p className="text-sm">Clique em "Nova Despesa" para começar.</p>
+          </div>
+        ) : sortedFiltered.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <FunnelSimple size={48} className="mx-auto mb-4 opacity-50" />
+            <p>Nenhuma despesa encontrada com os filtros aplicados.</p>
+            <Button variant="link" className="mt-1 text-sm" onClick={clearFilters}>Limpar filtros</Button>
+          </div>
+        ) : (
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-24 shrink-0">Nº Despesa</TableHead>
+                  <TableHead className="min-w-[160px]">Descrição</TableHead>
+                  <TableHead className="min-w-[120px]">Credor</TableHead>
+                  <TableHead className="w-28 shrink-0">Valor</TableHead>
+                  <TableHead className="w-20 shrink-0">Tipo</TableHead>
+                  <TableHead className="w-24 shrink-0">Vencimento</TableHead>
+                  <TableHead className="w-20 shrink-0">Mês</TableHead>
+                  <TableHead className="w-24 shrink-0">Status</TableHead>
+                  <TableHead className="text-right w-24 shrink-0">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedFiltered.map((expense) => {
+                  const creditor = creditors.find((c) => c.id === expense.creditorId)
+                  return (
+                    <TableRow key={expense.id}>
+                      <TableCell>
+                        <span className="font-mono text-sm font-semibold text-primary">
+                          {expense.number || '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-medium max-w-[260px]">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="whitespace-normal break-words leading-snug">{expense.description}</span>
+                          <ClassificationBadge classification={expense.classification} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[160px] whitespace-normal break-words leading-snug">{creditor?.name || '-'}</TableCell>
+                      <TableCell className="tabular-nums font-semibold">
+                        {formatCurrency(expense.amount)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {expense.type === 'fixed' ? 'Fixa' : 'Variável'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDate(expense.dueDate)}</TableCell>
+                      <TableCell className="font-medium">{expense.month}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            expense.status === 'paid'
+                              ? 'default'
+                              : expense.status === 'overdue'
+                              ? 'destructive'
+                              : 'secondary'
+                          }
+                          className="cursor-pointer"
+                          onClick={() => onToggleStatus(expense.id)}
+                        >
+                          {expense.status === 'paid'
+                            ? 'Pago'
+                            : expense.status === 'overdue'
+                            ? 'Vencido'
+                            : 'Pendente'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onEditExpense(expense)}
+                            className="gap-1 text-primary border-primary/40 hover:bg-primary/10"
+                          >
+                            <PencilSimple size={14} weight="bold" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              onDeleteConfirm({
+                                type: 'expense',
+                                id: expense.id,
+                                label: `${expense.number ? expense.number + ' – ' : ''}${expense.description}`,
+                              })
+                            }
+                            title="Excluir despesa"
+                          >
+                            <Trash size={16} className="text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
