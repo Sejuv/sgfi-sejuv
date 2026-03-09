@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -238,6 +238,8 @@ export function ExpensesView({
   const [filterValueMin, setFilterValueMin] = useState('')
   const [filterValueMax, setFilterValueMax] = useState('')
   const [filterMonth, setFilterMonth] = useState('')
+  const [pageSize, setPageSize] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const hasActiveFilters =
     filterDescription !== '' ||
@@ -260,7 +262,14 @@ export function ExpensesView({
     setFilterValueMin('')
     setFilterValueMax('')
     setFilterMonth('')
+    setCurrentPage(1)
   }
+
+  // Volta à pág 1 ao mudar qualquer filtro
+  useEffect(() => { setCurrentPage(1) }, [
+    filterDescription, filterCreditor, filterContract, filterCategory,
+    filterStatus, filterType, filterValueMin, filterValueMax, filterMonth,
+  ])
 
   const sortedFiltered = useMemo(() => {
     const minVal = filterValueMin !== '' ? parseFloat(filterValueMin.replace(',', '.')) : null
@@ -292,7 +301,26 @@ export function ExpensesView({
     expenses, filterDescription, filterCreditor, filterContract,
     filterCategory, filterStatus, filterType, filterValueMin, filterValueMax, filterMonth,
   ])
+  const totalPages = Math.max(1, Math.ceil(sortedFiltered.length / pageSize))
+  const safePage = Math.min(currentPage, totalPages)
 
+  const paginated = useMemo(() => {
+    const start = (safePage - 1) * pageSize
+    return sortedFiltered.slice(start, start + pageSize)
+  }, [sortedFiltered, safePage, pageSize])
+
+  // Botões de página: mostra no máximo 7, com reticências
+  const pageRange = useMemo((): (number | -1)[] => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+    const left = Math.max(2, safePage - 2)
+    const right = Math.min(totalPages - 1, safePage + 2)
+    const pages: (number | -1)[] = [1]
+    if (left > 2) pages.push(-1)
+    for (let i = left; i <= right; i++) pages.push(i)
+    if (right < totalPages - 1) pages.push(-1)
+    pages.push(totalPages)
+    return pages
+  }, [totalPages, safePage])
   return (
     <Card>
       <CardHeader>
@@ -497,13 +525,92 @@ export function ExpensesView({
             <Button variant="link" className="mt-1 text-sm" onClick={clearFilters}>Limpar filtros</Button>
           </div>
         ) : (
-          <ResizableExpensesTable
-            sortedFiltered={sortedFiltered}
-            creditors={creditors}
-            onEditExpense={onEditExpense}
-            onToggleStatus={onToggleStatus}
-            onDeleteConfirm={onDeleteConfirm}
-          />
+          <>
+            <ResizableExpensesTable
+              sortedFiltered={paginated}
+              creditors={creditors}
+              onEditExpense={onEditExpense}
+              onToggleStatus={onToggleStatus}
+              onDeleteConfirm={onDeleteConfirm}
+            />
+
+            {/* ── Paginação ─────────────────────────────────────────── */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t gap-4 flex-wrap">
+              {/* Seletor de itens por página */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Exibir</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1) }}
+                >
+                  <SelectTrigger className="h-8 w-20 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 30, 40, 50].map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>por página</span>
+                <span className="text-foreground font-medium">
+                  · {sortedFiltered.length} despesa{sortedFiltered.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Botões de navegação */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline" size="sm"
+                  className="h-8 w-8 p-0 text-base"
+                  disabled={safePage === 1}
+                  onClick={() => setCurrentPage(1)}
+                  title="Primeira página"
+                >«</Button>
+                <Button
+                  variant="outline" size="sm"
+                  className="h-8 w-8 p-0 text-base"
+                  disabled={safePage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  title="Página anterior"
+                >‹</Button>
+
+                {pageRange.map((p, idx) =>
+                  p === -1 ? (
+                    <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground text-sm select-none">…</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      variant={p === safePage ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-8 w-8 p-0 text-sm"
+                      onClick={() => setCurrentPage(p)}
+                    >{p}</Button>
+                  )
+                )}
+
+                <Button
+                  variant="outline" size="sm"
+                  className="h-8 w-8 p-0 text-base"
+                  disabled={safePage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  title="Próxima página"
+                >›</Button>
+                <Button
+                  variant="outline" size="sm"
+                  className="h-8 w-8 p-0 text-base"
+                  disabled={safePage === totalPages}
+                  onClick={() => setCurrentPage(totalPages)}
+                  title="Última página"
+                >»</Button>
+              </div>
+
+              {/* Info de página atual */}
+              <span className="text-sm text-muted-foreground">
+                Página <span className="font-medium text-foreground">{safePage}</span> de <span className="font-medium text-foreground">{totalPages}</span>
+              </span>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
