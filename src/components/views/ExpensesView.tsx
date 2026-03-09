@@ -135,9 +135,9 @@ function ResizableExpensesTable({
             const creditor = creditors.find((c) => c.id === expense.creditorId)
             return (
               <tr key={expense.id} className="border-b hover:bg-muted/50 transition-colors">
-                {/* Nº Despesa — truncate */}
-                <td className="px-3 py-2 align-top overflow-hidden">
-                  <span className="font-mono text-sm font-semibold text-primary block truncate">
+                {/* Nº Despesa — sem quebra */}
+                <td className="px-3 py-2 align-top overflow-hidden whitespace-nowrap">
+                  <span className="font-mono text-sm font-semibold text-primary">
                     {expense.number || '—'}
                   </span>
                 </td>
@@ -152,42 +152,42 @@ function ResizableExpensesTable({
                 <td className="px-3 py-2 align-top text-sm overflow-hidden">
                   <span className="whitespace-normal break-words leading-snug">{creditor?.name || '-'}</span>
                 </td>
-                {/* Valor — truncate */}
-                <td className="px-3 py-2 align-top tabular-nums font-semibold text-sm overflow-hidden">
-                  <span className="block truncate">{formatCurrency(expense.amount)}</span>
+                {/* Valor — sem quebra */}
+                <td className="px-3 py-2 align-top tabular-nums font-semibold text-sm overflow-hidden whitespace-nowrap">
+                  {formatCurrency(expense.amount)}
                 </td>
-                {/* Tipo — truncate */}
-                <td className="px-3 py-2 align-top overflow-hidden">
+                {/* Tipo — sem quebra */}
+                <td className="px-3 py-2 align-top overflow-hidden whitespace-nowrap">
                   <Badge variant="outline" className="text-xs">
                     {expense.type === 'fixed' ? 'Fixa' : 'Variável'}
                   </Badge>
                 </td>
-                {/* Vencimento — truncate */}
-                <td className="px-3 py-2 align-top text-sm overflow-hidden">
-                  <span className="block truncate">{formatDate(expense.dueDate)}</span>
+                {/* Vencimento — sem quebra */}
+                <td className="px-3 py-2 align-top text-sm overflow-hidden whitespace-nowrap">
+                  {formatDate(expense.dueDate)}
                 </td>
-                {/* Mês — truncate */}
-                <td className="px-3 py-2 align-top font-medium text-sm overflow-hidden">
-                  <span className="block truncate">{expense.month}</span>
+                {/* Mês — sem quebra */}
+                <td className="px-3 py-2 align-top font-medium text-sm overflow-hidden whitespace-nowrap">
+                  {expense.month}
                 </td>
-                {/* Status — truncate */}
-                <td className="px-3 py-2 align-top overflow-hidden">
+                {/* Status — sem quebra */}
+                <td className="px-3 py-2 align-top overflow-hidden whitespace-nowrap">
                   <Badge
                     variant={expense.status === 'paid' ? 'default' : expense.status === 'overdue' ? 'destructive' : 'secondary'}
-                    className="cursor-pointer text-xs whitespace-nowrap"
+                    className="cursor-pointer text-xs"
                     onClick={() => onToggleStatus(expense.id)}
                   >
                     {expense.status === 'paid' ? 'Pago' : expense.status === 'overdue' ? 'Vencido' : 'Pendente'}
                   </Badge>
                 </td>
                 {/* Ações */}
-                <td className="px-3 py-2 align-top overflow-hidden">
+                <td className="px-3 py-2 align-top overflow-hidden whitespace-nowrap">
                   <div className="flex gap-1 justify-end">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onEditExpense(expense)}
-                      className="gap-1 text-primary border-primary/40 hover:bg-primary/10 h-7 text-xs px-2 whitespace-nowrap"
+                      className="gap-1 text-primary border-primary/40 hover:bg-primary/10 h-7 text-xs px-2"
                     >
                       <PencilSimple size={12} weight="bold" />
                       Editar
