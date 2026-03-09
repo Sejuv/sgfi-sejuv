@@ -1,34 +1,35 @@
+# Dependências
+node_modules/
+
+# Build do frontend
+dist/
+# Manter o dist do spark-tools local (pacote @github/spark local)
+!packages/spark-tools/dist/
+
+# Ambiente
+.env
+.env.local
+.env.*.local
+server/.env
+
+# Chave de conta de serviço Firebase (NUNCA faça commit!)
+server/serviceAccountKey.json
+serviceAccountKey.json
+
 # Logs
-logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*-dist
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# OS
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
 
-.env
-**/agent-eval-report*
-packages
-pids
-.file-manifest
-.devcontainer/
+# IDEs
+.vscode/settings.json
+.idea/
 
-.spark-workbench-id
+# Firebase
+.firebase/
+
+.vercel
+.env*.local

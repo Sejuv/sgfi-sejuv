@@ -1,617 +1,530 @@
-import { useState, useMemo, useEffect, useRef } from "react"
-import { useFirebaseKV } from "@/hooks/useFirebaseKV"
-import { useRealtimeSync } from "@/hooks/useRealtimeSync"
-import { ProcessoDespesa, Usuario, SessaoUsuario } from "@/lib/types"
-import { Secretaria } from "@/lib/cadastros-types"
-import { validarCredenciais, criarSessao, criarUsuarioInicial } from "@/lib/auth-service"
-import { canView, canEdit } from "@/lib/permissions"
-import { Login } from "@/components/Login"
-import { ProcessoForm } from "@/components/ProcessoForm"
-import { WorkflowDialog } from "@/components/WorkflowDialog"
-import { DevolucaoDialog } from "@/components/DevolucaoDialog"
-import { ImportProcessosDialog } from "@/components/ImportProcessosDialog"
-import { FiltrosPanel, Filtros } from "@/components/FiltrosPanel"
-import { ProcessosTable } from "@/components/ProcessosTable"
-import { ResumoFinanceiro } from "@/components/ResumoFinanceiro"
-import { PainelMetricas } from "@/components/PainelMetricas"
-import { PainelCadastros } from "@/components/PainelCadastros"
-import { PainelUsuarios } from "@/components/PainelUsuarios"
-import { PainelLogs } from "@/components/PainelLogs"
-import { PainelPrevisoes } from "@/components/PainelPrevisoes"
-import { SyncPanel } from "@/components/SyncPanel"
-import { MigracaoFirebase } from "@/components/MigracaoFirebase"
-import { AppSidebar } from "@/components/AppSidebar"
-import { Footer } from "@/components/Footer"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
-import { Plus, FileArrowUp, SignOut, Moon, Sun } from "@phosphor-icons/react"
-import { toast, Toaster } from "sonner"
-import { logService } from "@/lib/log-service"
+﻿import { useState, useEffect } from 'react'
+import { AuthProvider, useAuth } from '@/lib/auth-context'
+import { LoginPage } from '@/components/LoginPage'
+import { Dashboard } from '@/components/Dashboard'
+import { ExpenseFormDialog, type ConsumedItemEntry } from '@/components/ExpenseFormDialog'
+import { CreditorFormDialog } from '@/components/CreditorFormDialog'
+import { ReportsDialog } from '@/components/ReportsDialog'
+import { SettingsDialog } from '@/components/SettingsDialog'
+import { ContractFormDialog } from '@/components/ContractFormDialog'
+import { ContractItemsDialog } from '@/components/ContractItemsDialog'
+import { ContractBalanceDialog } from '@/components/ContractBalanceDialog'
+import { ExpensesView } from '@/components/views/ExpensesView'
+import { CreditorsView } from '@/components/views/CreditorsView'
+import { ContratosView } from '@/components/views/ContratosView'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar'
+import { expensesApi, creditorsApi, categoriesApi, contractsApi } from '@/lib/api'
+import { BottomBar } from '@/components/BottomBar'
+import { Expense, Creditor, Category, Contract, ContractItem, CatalogItem } from '@/lib/types'
+import { formatCurrency, updateExpenseStatus } from '@/lib/calculations'
+import {
+  ChartPieSlice, Plus, SignOut, Wallet, Users, DownloadSimple,
+  Gear, FileText,
+} from '@phosphor-icons/react'
+import { toast } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
+import { catalogItemsApi } from '@/lib/api'
 
-function App() {
-  useRealtimeSync(true)
-  
-  const [processos, setProcessos] = useFirebaseKV<ProcessoDespesa[]>("processos-despesas", [])
-  const [usuarios, setUsuarios] = useFirebaseKV<Usuario[]>("usuarios", [])
-  const [sessao, setSessao] = useState<SessaoUsuario | null>(null)
-  const [secretarias] = useFirebaseKV<any[]>("cadastro-secretarias", [])
-  const [erroLogin, setErroLogin] = useState<string>("")
-  const [formOpen, setFormOpen] = useState(false)
-  const [workflowOpen, setWorkflowOpen] = useState(false)
-  const [devolucaoOpen, setDevolucaoOpen] = useState(false)
-  const [importOpen, setImportOpen] = useState(false)
-  const [processoEditando, setProcessoEditando] = useState<ProcessoDespesa | undefined>()
-  const [processoWorkflow, setProcessoWorkflow] = useState<ProcessoDespesa | undefined>()
-  const [processoDevolucao, setProcessoDevolucao] = useState<ProcessoDespesa | undefined>()
-  const [filtros, setFiltros] = useState<Filtros>({ apenaspendentes: false })
-  const [abaAtiva, setAbaAtiva] = useState("processos")
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; nome?: string } | null>(null)
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('darkMode')
-      return saved === 'true'
-    }
-    return false
-  })
+// â”€â”€ Tipos compartilhados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+type DeleteConfirm = { type: 'expense' | 'creditor' | 'contract'; id: string; label: string }
 
+// â”€â”€ Componente principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function AppContent() {
+  const { currentUser, logout, isAuthenticated } = useAuth()
+
+  // Estado global
+  const [expenses,     setExpenses]     = useState<Expense[]>([])
+  const [creditors,    setCreditors]    = useState<Creditor[]>([])
+  const [categories,   setCategories]   = useState<Category[]>([])
+  const [contracts,    setContracts]    = useState<Contract[]>([])
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([])
+  const [loading,      setLoading]      = useState(true)
+
+  // Navegação
+  const [activeView, setActiveView] = useState('dashboard')
+
+  // Diálogos
+  const [expenseDialogOpen,       setExpenseDialogOpen]       = useState(false)
+  const [editingExpense,          setEditingExpense]          = useState<Expense | null>(null)
+  const [creditorDialogOpen,      setCreditorDialogOpen]      = useState(false)
+  const [editingCreditor,         setEditingCreditor]         = useState<Creditor | null>(null)
+  const [contractDialogOpen,      setContractDialogOpen]      = useState(false)
+  const [editingContract,         setEditingContract]         = useState<Contract | null>(null)
+  const [contractItemsDialogOpen, setContractItemsDialogOpen] = useState(false)
+  const [contractForItems,        setContractForItems]        = useState<Contract | null>(null)
+  const [balanceDialogOpen,       setBalanceDialogOpen]       = useState(false)
+  const [contractForBalance,      setContractForBalance]      = useState<Contract | null>(null)
+  const [reportsDialogOpen,       setReportsDialogOpen]       = useState(false)
+  const [settingsDialogOpen,      setSettingsDialogOpen]      = useState(false)
+  const [deleteConfirm,           setDeleteConfirm]           = useState<DeleteConfirm | null>(null)
+
+  // Carrega dados ao autenticar
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-    localStorage.setItem('darkMode', darkMode.toString())
-  }, [darkMode])
+    if (!isAuthenticated) return
+    setLoading(true)
+    Promise.all([
+      expensesApi.list().then(setExpenses),
+      creditorsApi.list().then(setCreditors),
+      categoriesApi.list().then(setCategories),
+      contractsApi.list().then(setContracts),
+      catalogItemsApi.list().then(setCatalogItems),
+    ]).finally(() => setLoading(false))
+  }, [isAuthenticated])
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode)
-  }
+  if (!isAuthenticated) return <LoginPage />
 
-  const INACTIVITY_TIMEOUT = 15 * 60 * 1000
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
-
-  const resetInactivityTimer = () => {
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current)
-    }
-
-    if (sessao) {
-      inactivityTimerRef.current = setTimeout(() => {
-        console.log('⏰ Timeout de inatividade atingido')
-        handleLogout()
-        toast.warning('Sessão expirada por inatividade', {
-          description: 'Você foi desconectado após 15 minutos de inatividade'
-        })
-      }, INACTIVITY_TIMEOUT)
-    }
-  }
-
-  useEffect(() => {
-    if (!sessao) return
-
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click']
-    
-    events.forEach(event => {
-      document.addEventListener(event, resetInactivityTimer)
-    })
-
-    resetInactivityTimer()
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, resetInactivityTimer)
-      })
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current)
-      }
-    }
-  }, [sessao])
-
-  const processosArray = processos || []
-
-  const processosFiltrados = useMemo(() => {
-    return processosArray.filter((processo) => {
-      if (filtros.anos && filtros.anos.length > 0 && !filtros.anos.includes(processo.ano)) return false
-      if (filtros.secretarias && filtros.secretarias.length > 0 && !filtros.secretarias.includes(processo.secretaria)) return false
-      if (filtros.meses && filtros.meses.length > 0 && !filtros.meses.includes(processo.mes)) return false
-      if (filtros.recursos && filtros.recursos.length > 0 && !filtros.recursos.includes(processo.recurso)) return false
-      if (filtros.credores && filtros.credores.length > 0 && !filtros.credores.includes(processo.credor)) return false
-      if (filtros.objetos && filtros.objetos.length > 0 && !filtros.objetos.includes(processo.objeto)) return false
-      if (filtros.tiposConta && filtros.tiposConta.length > 0 && !filtros.tiposConta.includes(processo.conta)) return false
-      if (filtros.did && (!processo.did || !processo.did.toLowerCase().includes(filtros.did.toLowerCase()))) return false
-      if (filtros.nf && (!processo.nf || !processo.nf.toLowerCase().includes(filtros.nf.toLowerCase()))) return false
-      if (filtros.apenaspendentes && processo.dataTesouraria) return false
-      return true
-    })
-  }, [processosArray, filtros])
-
-  const estatisticas = useMemo(() => {
-    const total = processosFiltrados.reduce((acc, p) => acc + p.valor, 0)
-    const pendentes = processosFiltrados.filter((p) => !p.dataTesouraria).length
-    return { total, pendentes, quantidade: processosFiltrados.length }
-  }, [processosFiltrados])
-
-  const inicializadoRef = useRef(false)
-  const tentativasRef = useRef(0)
-  const MAX_TENTATIVAS = 10
-
-  useEffect(() => {
-    const inicializarUsuarios = () => {
-      if (inicializadoRef.current) return
-      
-      const usuariosExistentes = usuarios || []
-      
-      console.log(`🔍 Verificando usuários (tentativa ${tentativasRef.current + 1}/${MAX_TENTATIVAS}):`, {
-        length: usuariosExistentes.length,
-        usuarios: usuariosExistentes
-      })
-      
-      if (usuariosExistentes.length > 0) {
-        console.log(`✅ ${usuariosExistentes.length} usuário(s) já cadastrado(s)`)
-        inicializadoRef.current = true
-        return
-      }
-      
-      tentativasRef.current++
-      
-      if (tentativasRef.current < MAX_TENTATIVAS) {
-        console.log(`⏳ Aguardando Firebase carregar... (tentativa ${tentativasRef.current}/${MAX_TENTATIVAS})`)
-        setTimeout(inicializarUsuarios, 500)
-        return
-      }
-      
-      console.log("📝 Nenhum usuário encontrado após carregar. Criando usuário administrativo inicial...")
-      criarUsuarioInicial().then(usuarioAdmin => {
-        setUsuarios([usuarioAdmin])
-        inicializadoRef.current = true
-      })
-    }
-    
-    const timer = setTimeout(inicializarUsuarios, 500)
-    return () => clearTimeout(timer)
-  }, [usuarios])
-
-  const handleLogin = async (email: string, senha: string): Promise<boolean> => {
-    const usuariosArray = usuarios || []
-    
-    const usuario = await validarCredenciais(email, senha, usuariosArray)
-    
-    if (usuario) {
-      const novaSessao = criarSessao(usuario)
-      setSessao(novaSessao)
-      
-      setUsuarios((current) =>
-        (current || []).map((u) =>
-          u.id === usuario.id ? { ...u, ultimoAcesso: new Date().toISOString() } : u
-        )
-      )
-      
-      logService.registrarLog(
-        usuario.id,
-        usuario.nome,
-        usuario.email,
-        'login',
-        'Login',
-        `Login realizado com sucesso`
-      )
-      
-      setErroLogin("")
-      toast.success(`Bem-vindo, ${usuario.nome}!`)
-      return true
-    } else {
-      setErroLogin("Email ou senha inválidos")
-      return false
-    }
-  }
-
-  const handleLogout = () => {
-    if (sessao) {
-      logService.registrarLog(
-        sessao.usuarioId,
-        sessao.nome,
-        sessao.email,
-        'logout',
-        'Login',
-        `Logout realizado`
-      )
-    }
-    setSessao(null)
-    toast.info("Você saiu do sistema")
-  }
-
-  const handleAtualizarUsuario = (usuarioAtualizado: Usuario) => {
-    setUsuarios((current) => 
-      (current || []).map((u) => u.id === usuarioAtualizado.id ? usuarioAtualizado : u)
-    )
-  }
-
-  if (!sessao) {
+  if (loading) {
     return (
-      <>
-        <Toaster richColors position="top-right" />
-        <Login 
-          onLogin={handleLogin} 
-          erro={erroLogin} 
-          usuarios={usuarios || []}
-          onAtualizarUsuario={handleAtualizarUsuario}
-        />
-      </>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground text-sm">Carregando dados...</p>
+        </div>
+      </div>
     )
   }
 
-  const handleSaveProcesso = (processoData: Omit<ProcessoDespesa, "id"> & { id?: string }) => {
-    const isEdit = !!processoData.id
-    
-    setProcessos((current) => {
-      const currentArray = current || []
-      if (processoData.id) {
-        return currentArray.map((p) => (p.id === processoData.id ? (processoData as ProcessoDespesa) : p))
-      } else {
-        const novoProcesso: ProcessoDespesa = {
-          ...processoData,
-          id: Date.now().toString(),
+  // â”€â”€ Handlers: Despesas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Número sequencial de despesa ─────────────────────────
+  const nextExpenseNumber = (() => {
+    const year = new Date().getFullYear()
+    const thisYear = expenses.filter((e) => e.number?.endsWith(`/${year}`))
+    if (!thisYear.length) return `0001/${year}`
+    const max = Math.max(...thisYear.map((e) => parseInt(e.number?.split('/')[0] || '0') || 0))
+    return `${String(max + 1).padStart(4, '0')}/${year}`
+  })()
+
+  const handleSaveExpense = async (
+    expenseData: Omit<Expense, 'id' | 'createdAt'>,
+    consumedItems: ConsumedItemEntry[] = []
+  ) => {
+    // ── EDIÇÃO ──────────────────────────────────────────────
+    if (editingExpense) {
+      try {
+        const updated: Expense = { ...editingExpense, ...expenseData }
+        const saved = await expensesApi.update(editingExpense.id, updated)
+        setExpenses((prev) => prev.map((e) => (e.id === saved.id ? saved : e)))
+        toast.success('Despesa atualizada com sucesso!')
+      } catch (e: any) { toast.error(e.message) }
+      setEditingExpense(null)
+      return
+    }
+
+    // ── CRIAÇÃO ──────────────────────────────────────────────
+    const newExpense: Expense = {
+      ...expenseData,
+      id: `expense_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    }
+    try {
+      const saved = await expensesApi.create(newExpense)
+      setExpenses((prev) => [...prev, saved])
+
+      if (expenseData.contractId && consumedItems.length > 0) {
+        const contract = contracts.find((c) => c.id === expenseData.contractId)
+        if (contract) {
+          await Promise.all(
+            consumedItems.map(async ({ itemId, qty }) => {
+              const item = contract.items.find((i) => i.id === itemId)
+              if (!item) return
+              const newConsumed = (item.consumed ?? 0) + qty
+              const updatedItem = await contractsApi.updateConsumed(contract.id, itemId, newConsumed)
+              setContracts((prev) =>
+                prev.map((c) =>
+                  c.id !== contract.id
+                    ? c
+                    : { ...c, items: c.items.map((i) => (i.id === itemId ? { ...i, consumed: updatedItem.consumed } : i)) }
+                )
+              )
+            })
+          )
         }
-        return [...currentArray, novoProcesso]
       }
-    })
-    
-    if (sessao) {
-      logService.registrarLog(
-        sessao.usuarioId,
-        sessao.nome,
-        sessao.email,
-        isEdit ? 'editar' : 'criar',
-        'Processos',
-        `Processo ${processoData.nf || 'S/N'} - ${isEdit ? 'editado' : 'criado'}`
+      toast.success('Despesa cadastrada com sucesso!')
+    } catch (e: any) { toast.error(e.message) }
+  }
+
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      await expensesApi.remove(id)
+      setExpenses((prev) => prev.filter((e) => e.id !== id))
+      toast.success('Despesa excluída')
+    } catch (e: any) { toast.error(e.message) }
+    setDeleteConfirm(null)
+  }
+
+  const handleToggleExpenseStatus = async (id: string) => {
+    const expense = expenses.find((e) => e.id === id)
+    if (!expense) return
+    const updated = {
+      ...expense,
+      status: (expense.status === 'paid' ? 'pending' : 'paid') as Expense['status'],
+      paidAt: expense.status === 'paid' ? undefined : new Date().toISOString(),
+    }
+    try {
+      const saved = await expensesApi.update(id, updated)
+      setExpenses((prev) => prev.map((e) => (e.id === id ? saved : e)))
+      toast.success('Status atualizado')
+    } catch (e: any) { toast.error(e.message) }
+  }
+
+  // â”€â”€ Handlers: Credores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const handleCreditorSaved = (creditor: Creditor, isEdit: boolean) => {
+    if (isEdit) {
+      setCreditors((prev) => prev.map((c) => (c.id === creditor.id ? creditor : c)))
+    } else {
+      setCreditors((prev) => [...prev, creditor])
+    }
+  }
+
+  const handleDeleteCreditor = async (id: string) => {
+    try {
+      await creditorsApi.remove(id)
+      setCreditors((prev) => prev.filter((c) => c.id !== id))
+      toast.success('Credor excluído')
+    } catch (e: any) { toast.error(e.message || 'Erro ao excluir credor') }
+  }
+
+  // â”€â”€ Handlers: Contratos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const handleSaveContract = async (data: Omit<Contract, 'id' | 'createdAt'>) => {
+    try {
+      if (editingContract) {
+        const saved = await contractsApi.update(editingContract.id, data)
+        setContracts((prev) => prev.map((c) => (c.id === saved.id ? saved : c)))
+        toast.success('Contrato atualizado!')
+      } else {
+        const newContract: Contract = { ...data, id: `contract_${Date.now()}`, createdAt: new Date().toISOString() }
+        const saved = await contractsApi.create(newContract)
+        setContracts((prev) => [...prev, saved])
+        toast.success('Contrato criado com sucesso!')
+      }
+    } catch (e: any) { toast.error(e.message) }
+    setEditingContract(null)
+  }
+
+  const handleDeleteContract = async (id: string) => {
+    try {
+      await contractsApi.remove(id)
+      setContracts((prev) => prev.filter((c) => c.id !== id))
+      toast.success('Contrato excluído')
+    } catch (e: any) { toast.error(e.message) }
+    setDeleteConfirm(null)
+  }
+
+  const handleSaveContractItems = async (contractId: string, items: ContractItem[]) => {
+    const contract = contracts.find((c) => c.id === contractId)
+    if (!contract) return
+    const updated = await contractsApi.update(contractId, { ...contract, items })
+    setContracts((prev) => prev.map((c) => (c.id === contractId ? updated : c)))
+  }
+
+  const handleUpdateConsumed = async (contractId: string, itemId: string, consumed: number) => {
+    const updatedItem = await contractsApi.updateConsumed(contractId, itemId, consumed)
+    setContracts((prev) =>
+      prev.map((c) =>
+        c.id !== contractId
+          ? c
+          : { ...c, items: c.items.map((i) => (i.id === itemId ? { ...i, consumed: updatedItem.consumed } : i)) }
       )
-    }
-    
-    toast.success(processoData.id ? "Processo atualizado com sucesso" : "Processo criado com sucesso")
-    setProcessoEditando(undefined)
+    )
+    setContractForBalance((prev) => {
+      if (!prev || prev.id !== contractId) return prev
+      return { ...prev, items: prev.items.map((i) => (i.id === itemId ? { ...i, consumed: updatedItem.consumed } : i)) }
+    })
   }
 
-  const handleDeleteProcesso = (id: string) => {
-    if (!canEdit(sessao?.usuario || null, "processos")) {
-      toast.error("Você não tem permissão para excluir processos")
-      return
-    }
-    const processo = processosArray.find(p => p.id === id)
-    setItemToDelete({ id, nome: `Processo NF ${processo?.nf || 'S/N'}` })
-    setConfirmDeleteOpen(true)
-  }
-
+  // â”€â”€ ConfirmaÃ§Ã£o de exclusÃ£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleConfirmDelete = () => {
-    if (!itemToDelete) return
+    if (!deleteConfirm) return
+    if (deleteConfirm.type === 'expense')  handleDeleteExpense(deleteConfirm.id)
+    else if (deleteConfirm.type === 'creditor') { handleDeleteCreditor(deleteConfirm.id); setDeleteConfirm(null) }
+    else if (deleteConfirm.type === 'contract') handleDeleteContract(deleteConfirm.id)
+  }
 
-    const processo = processosArray.find(p => p.id === itemToDelete.id)
-    
-    setProcessos((current) => (current || []).filter((p) => p.id !== itemToDelete.id))
-    
-    if (sessao && processo) {
-      logService.registrarLog(
-        sessao.usuarioId,
-        sessao.nome,
-        sessao.email,
-        'excluir',
-        'Processos',
-        `Processo ${processo.nf || 'S/N'} excluído`
-      )
+  const updatedExpenses = updateExpenseStatus(expenses)
+
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard',  icon: ChartPieSlice },
+    { id: 'expenses',  label: 'Despesas',   icon: Wallet },
+    { id: 'creditors', label: 'Credores',   icon: Users },
+    { id: 'contratos', label: 'Contratos',  icon: FileText },
+  ]
+
+  const renderContent = () => {
+    switch (activeView) {
+      case 'dashboard':
+        return <Dashboard expenses={updatedExpenses} creditors={creditors} contracts={contracts} />
+      case 'expenses':
+        return (
+          <ExpensesView
+            expenses={updatedExpenses}
+            creditors={creditors}
+            categories={categories}
+            contracts={contracts}
+            onNewExpense={() => { setEditingExpense(null); setExpenseDialogOpen(true) }}
+            onEditExpense={(e) => { setEditingExpense(e); setExpenseDialogOpen(true) }}
+            onToggleStatus={handleToggleExpenseStatus}
+            onDeleteConfirm={setDeleteConfirm}
+          />
+        )
+      case 'creditors':
+        return (
+          <CreditorsView
+            creditors={creditors}
+            onNewCreditor={() => { setEditingCreditor(null); setCreditorDialogOpen(true) }}
+            onEditCreditor={(c) => { setEditingCreditor(c); setCreditorDialogOpen(true) }}
+            onDeleteConfirm={setDeleteConfirm}
+          />
+        )
+      case 'contratos':
+        return (
+          <ContratosView
+            contracts={contracts}
+            creditors={creditors}
+            catalogItems={catalogItems}
+            onNewContract={() => { setEditingContract(null); setContractDialogOpen(true) }}
+            onEditContract={(c) => { setEditingContract(c); setContractDialogOpen(true) }}
+            onDeleteConfirm={setDeleteConfirm}
+            onShowBalance={(c) => { setContractForBalance(c); setBalanceDialogOpen(true) }}
+            onCatalogItemsChange={setCatalogItems}
+          />
+        )
+      default:
+        return null
     }
-    
-    toast.success("Processo excluído com sucesso")
-    setConfirmDeleteOpen(false)
-    setItemToDelete(null)
-  }
-
-  const handleDevolverProcesso = (processo: ProcessoDespesa) => {
-    if (!canEdit(sessao?.usuario || null, "processos")) {
-      toast.error("Você não tem permissão para devolver processos")
-      return
-    }
-    setProcessoDevolucao(processo)
-    setDevolucaoOpen(true)
-  }
-
-  const handleConfirmarDevolucao = (processoId: string, motivo: string, secretaria: string, data: string) => {
-    setProcessos((current) =>
-      (current || []).map((p) =>
-        p.id === processoId
-          ? {
-              ...p,
-              devolvido: true,
-              motivoDevolucao: motivo,
-              secretariaDevolucao: secretaria,
-              dataDevolucao: data,
-              usuarioDevolucao: sessao?.nome || 'Usuário',
-              recebidoNovamente: false
-            }
-          : p
-      )
-    )
-
-    if (sessao) {
-      const processo = processosArray.find(p => p.id === processoId)
-      logService.registrarLog(
-        sessao.usuarioId,
-        sessao.nome,
-        sessao.email,
-        'devolver',
-        'Processos',
-        `Processo ${processo?.nf || 'S/N'} devolvido para ${secretaria}: ${motivo}`
-      )
-    }
-
-    toast.success(`Processo devolvido para ${secretaria}`)
-  }
-
-  const handleReceberProcesso = (processo: ProcessoDespesa) => {
-    setProcessos((current) =>
-      (current || []).map((p) =>
-        p.id === processo.id
-          ? {
-              ...p,
-              recebidoNovamente: true,
-              dataRecebimento: new Date().toISOString(),
-              usuarioRecebimento: sessao?.nome || 'Usuário'
-            }
-          : p
-      )
-    )
-
-    if (sessao) {
-      logService.registrarLog(
-        sessao.usuarioId,
-        sessao.nome,
-        sessao.email,
-        'receber',
-        'Processos',
-        `Processo ${processo.nf || 'S/N'} recebido novamente após devolução`
-      )
-    }
-
-    toast.success("Processo recebido novamente")
-  }
-
-  const handleEditProcesso = (processo: ProcessoDespesa) => {
-    if (!canEdit(sessao?.usuario || null, "processos")) {
-      toast.error("Você não tem permissão para editar processos")
-      return
-    }
-    setProcessoEditando(processo)
-    setFormOpen(true)
-  }
-
-  const handleNovoProcesso = () => {
-    if (!canEdit(sessao?.usuario || null, "processos")) {
-      toast.error("Você não tem permissão para criar processos")
-      return
-    }
-    setProcessoEditando(undefined)
-    setFormOpen(true)
-  }
-
-  const handleWorkflow = (processo: ProcessoDespesa) => {
-    setProcessoWorkflow(processo)
-    setWorkflowOpen(true)
-  }
-
-  const handleSaveWorkflow = (processoAtualizado: ProcessoDespesa, silent = false) => {
-    setProcessos((current) => (current || []).map((p) => (p.id === processoAtualizado.id ? processoAtualizado : p)))
-    setProcessoWorkflow((current) => (current?.id === processoAtualizado.id ? processoAtualizado : current))
-    if (!silent) {
-      toast.success("Trâmite atualizado com sucesso")
-    }
-  }
-
-  const handleImportProcessos = (processosImportados: Omit<ProcessoDespesa, "id">[]) => {
-    setProcessos((current) => {
-      const currentArray = current || []
-      const novosProcessos = processosImportados.map((p, index) => ({
-        ...p,
-        id: `${Date.now()}-${index}`,
-      }))
-      return [...currentArray, ...novosProcessos]
-    })
   }
 
   return (
     <SidebarProvider>
-      <Toaster richColors position="top-right" />
-      
-      <AppSidebar 
-        abaAtiva={abaAtiva} 
-        onAbaChange={setAbaAtiva} 
-        estatisticas={estatisticas} 
-        usuario={sessao?.usuario || null}
-        onLogout={handleLogout}
-      />
-      
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
-          <div className="flex items-center gap-2 px-3 w-full">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="h-6" />
-            <div className="flex-1">
-              <h1 className="text-base md:text-lg font-semibold text-primary">
-                Sistema de Gestão de Despesas
-              </h1>
-              <p className="text-xs text-muted-foreground hidden lg:block">
-                {sessao.nome} - {sessao.email}
-              </p>
+      <div className="flex min-h-screen w-full bg-gradient-to-br from-muted/20 via-background to-primary/5">
+        {/* â”€â”€ Sidebar â”€â”€ */}
+        <Sidebar>
+          <SidebarHeader>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                <Wallet size={24} weight="duotone" className="text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold font-display">SGFI</h1>
+                <p className="text-xs text-muted-foreground">Sistema Financeiro</p>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleDarkMode}
-              className="h-9 w-9"
-              title={darkMode ? "Modo claro" : "Modo escuro"}
-            >
-              {darkMode ? <Sun size={18} weight="duotone" /> : <Moon size={18} weight="duotone" />}
-            </Button>
-            {abaAtiva === "processos" && canView(sessao?.usuario || null, "processos") && (
-              <div className="flex gap-2">
-                {canEdit(sessao?.usuario || null, "processos") && (
-                  <>
-                    <Button onClick={() => setImportOpen(true)} variant="outline" size="default" className="gap-2">
-                      <FileArrowUp className="h-4 w-4" weight="bold" />
-                      Importar
-                    </Button>
-                    <Button onClick={handleNovoProcesso} size="default" className="gap-2">
-                      <Plus className="h-4 w-4" weight="bold" />
-                      Novo Processo
-                    </Button>
-                  </>
-                )}
-              </div>
-            )}
+          </SidebarHeader>
 
-          </div>
-        </header>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Módulos</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {menuItems.map(({ id, label, icon: Icon }) => (
+                    <SidebarMenuItem key={id}>
+                      <SidebarMenuButton
+                        onClick={() => setActiveView(id)}
+                        isActive={activeView === id}
+                        tooltip={label}
+                      >
+                        <Icon size={20} weight={activeView === id ? 'fill' : 'regular'} />
+                        <span>{label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
 
-        <main className="flex flex-1 flex-col gap-4 p-3 md:p-4 bg-gradient-to-br from-background via-primary/5 to-background overflow-y-scroll min-h-0">
-          {abaAtiva === "processos" && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 shrink-0">
-                <Card className="p-3 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Total Filtrado
-                  </p>
-                  <p className="text-lg font-bold text-primary mt-0.5 tabular-nums">
-                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                      estatisticas.total
-                    )}
-                  </p>
-                </Card>
-                <Card className="p-3 bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Processos
-                  </p>
-                  <p className="text-lg font-bold text-accent mt-0.5 tabular-nums">
-                    {estatisticas.quantidade}
-                  </p>
-                </Card>
-                <Card className="p-3 bg-gradient-to-br from-amber-100/50 to-amber-50/50 border-amber-200">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Pendentes
-                  </p>
-                  <p className="text-lg font-bold text-amber-700 mt-0.5 tabular-nums">
-                    {estatisticas.pendentes}
-                  </p>
-                </Card>
-              </div>
+            <SidebarGroup>
+              <SidebarGroupLabel>Ações Rápidas</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setExpenseDialogOpen(true)} tooltip="Nova Despesa">
+                      <Plus size={20} weight="bold" />
+                      <span>Nova Despesa</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => { setEditingCreditor(null); setCreditorDialogOpen(true) }}
+                      tooltip="Novo Credor"
+                    >
+                      <Plus size={20} weight="bold" />
+                      <span>Novo Credor</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setReportsDialogOpen(true)} tooltip="Relatórios">
+                      <DownloadSimple size={20} weight="bold" />
+                      <span>Relatórios</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setSettingsDialogOpen(true)} tooltip="Configurações">
+                      <Gear size={20} weight="fill" />
+                      <span>Configurações</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
 
-              <div className="shrink-0">
-                <FiltrosPanel filtros={filtros} onFiltrosChange={setFiltros} processos={processosArray} />
-              </div>
-            </>
-          )}
+          <SidebarFooter className="pb-9">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <div className="flex items-center gap-3 px-4 py-3 border-t">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                      {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{currentUser?.name}</p>
+                    <p className="text-xs text-muted-foreground capitalize truncate">
+                      {currentUser?.role?.replace('_', ' ')}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={logout} title="Sair">
+                    <SignOut size={18} />
+                  </Button>
+                </div>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+        </Sidebar>
 
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            {abaAtiva === "processos" && (
-              <ProcessosTable
-                processos={processosFiltrados}
-                onEdit={handleEditProcesso}
-                onDelete={handleDeleteProcesso}
-                onWorkflow={handleWorkflow}
-                onDevolucao={handleDevolverProcesso}
-                onReceber={handleReceberProcesso}
-                usuario={sessao?.usuario || null}
-              />
-            )}
-
-            {abaAtiva === "metricas" && (
-              <PainelMetricas processos={processosFiltrados} />
-            )}
-
-            {abaAtiva === "previsoes" && (
-              <PainelPrevisoes processos={processos} />
-            )}
-
-            {abaAtiva === "resumo" && (
-              <ResumoFinanceiro processos={processosFiltrados} />
-            )}
-
-            {abaAtiva === "cadastros" && (
-              <PainelCadastros />
-            )}
-
-            {abaAtiva === "usuarios" && (
-              <PainelUsuarios />
-            )}
-
-            {abaAtiva === "logs" && (
-              <PainelLogs />
-            )}
-
-            {abaAtiva === "sincronizacao" && (
-              <SyncPanel />
-            )}
-
-            {abaAtiva === "firebase" && (
-              <div className="p-6 max-w-2xl">
-                <MigracaoFirebase />
-              </div>
-            )}
-          </div>
+        {/* â”€â”€ Main â”€â”€ */}
+        <main className="flex-1 overflow-auto">
+          <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex h-16 items-center gap-4 px-6">
+              <SidebarTrigger />
+              <div className="flex-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReportsDialogOpen(true)}
+                className="gap-2"
+              >
+                <DownloadSimple size={18} weight="bold" />
+                Relatórios
+              </Button>
+            </div>
+          </header>
+          <div className="p-6 pb-14">{renderContent()}</div>
         </main>
+      </div>
 
-        <ProcessoForm
-          open={formOpen}
-          onOpenChange={setFormOpen}
-          processo={processoEditando}
-          onSave={handleSaveProcesso}
-        />
+      {/* Diálogos globais */}
+      <ExpenseFormDialog
+        open={expenseDialogOpen}
+        onOpenChange={(v) => { setExpenseDialogOpen(v); if (!v) setEditingExpense(null) }}
+        onSave={handleSaveExpense}
+        creditors={creditors}
+        contracts={contracts}
+        categories={categories}
+        nextNumber={nextExpenseNumber}
+        expense={editingExpense ?? undefined}
+      />
 
-        <ImportProcessosDialog
-          open={importOpen}
-          onOpenChange={setImportOpen}
-          onImport={handleImportProcessos}
-        />
+      <CreditorFormDialog
+        open={creditorDialogOpen}
+        onOpenChange={setCreditorDialogOpen}
+        editingCreditor={editingCreditor}
+        onSaved={handleCreditorSaved}
+      />
 
-        {processoWorkflow && (
-          <WorkflowDialog
-            open={workflowOpen}
-            onOpenChange={setWorkflowOpen}
-            processo={processoWorkflow}
-            onSave={handleSaveWorkflow}
-          />
-        )}
+      <ContractFormDialog
+        open={contractDialogOpen}
+        onOpenChange={(v) => { setContractDialogOpen(v); if (!v) setEditingContract(null) }}
+        onSave={handleSaveContract}
+        creditors={creditors}
+        initialData={editingContract}
+        catalogItems={catalogItems}
+      />
 
-        <DevolucaoDialog
-          processo={processoDevolucao}
-          open={devolucaoOpen}
-          onOpenChange={setDevolucaoOpen}
-          onDevolucao={handleConfirmarDevolucao}
-          secretarias={secretarias.map(s => s.nome)}
-        />
+      <ContractItemsDialog
+        open={contractItemsDialogOpen}
+        onOpenChange={setContractItemsDialogOpen}
+        contract={contractForItems}
+        onSave={handleSaveContractItems}
+        catalogItems={catalogItems}
+      />
 
-        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja excluir <strong>{itemToDelete?.nome}</strong>?
-                <br />
-                Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      <ContractBalanceDialog
+        open={balanceDialogOpen}
+        onOpenChange={setBalanceDialogOpen}
+        contract={contractForBalance}
+        onUpdateConsumed={handleUpdateConsumed}
+      />
 
-        <Footer />
-      </SidebarInset>
+      <ReportsDialog
+        open={reportsDialogOpen}
+        onOpenChange={setReportsDialogOpen}
+        expenses={updatedExpenses}
+        creditors={creditors}
+        categories={categories}
+      />
+
+      <SettingsDialog
+        open={settingsDialogOpen}
+        onOpenChange={setSettingsDialogOpen}
+      />
+
+      {/* â”€â”€ ConfirmaÃ§Ã£o de exclusÃ£o â”€â”€ */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(v) => { if (!v) setDeleteConfirm(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>&ldquo;{deleteConfirm?.label}&rdquo;</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleConfirmDelete}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <BottomBar />
     </SidebarProvider>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+      <Toaster />
+    </AuthProvider>
+  )
+}
+

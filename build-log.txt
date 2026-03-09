@@ -1,0 +1,56 @@
+[icon-proxy] Checking for exports in directory: C:\Users\sejuv\OneDrive\Desktop\SGFI\node_modules\@phosphor-icons\react
+[icon-proxy] Found package file: C:\Users\sejuv\OneDrive\Desktop\SGFI\node_modules\@phosphor-icons\react\dist\index.d.ts
+[icon-proxy] Loaded 1514 exports from C:\Users\sejuv\OneDrive\Desktop\SGFI\node_modules\@phosphor-icons\react\dist\index.d.ts
+[icon-proxy] Checking for exports in directory: C:\Users\sejuv\OneDrive\Desktop\SGFI\node_modules\@phosphor-icons\react
+[icon-proxy] Found package file: C:\Users\sejuv\OneDrive\Desktop\SGFI\node_modules\@phosphor-icons\react\dist\index.d.ts
+[icon-proxy] Loaded 1514 exports from C:\Users\sejuv\OneDrive\Desktop\SGFI\node_modules\@phosphor-icons\react\dist\index.d.ts
+[36mvite v7.2.6 [32mbuilding client environment for production...[36m[39m
+transforming...
+Found 3 warnings while optimizing generated CSS:
+
+Issue #1:
+[2m│   .container {[22m
+[2m│     width: 100%;[22m
+[2m│[22m     @media (width >= (display-mode: standalone)) {
+[2m┆[22m                     [33m[2m^--[22m Unexpected token ParenthesisBlock[39m
+[2m┆[22m
+[2m│       max-width: (display-mode: standalone);[22m
+[2m│     }[22m
+
+Issue #2:
+[2m│       max-width: (display-mode: standalone);[22m
+[2m│     }[22m
+[2m│[22m     @media (width >= (pointer: coarse)) {
+[2m┆[22m                     [33m[2m^--[22m Unexpected token ParenthesisBlock[39m
+[2m┆[22m
+[2m│       max-width: (pointer: coarse);[22m
+[2m│     }[22m
+
+Issue #3:
+[2m│       max-width: (pointer: coarse);[22m
+[2m│     }[22m
+[2m│[22m     @media (width >= (pointer: fine)) {
+[2m┆[22m                     [33m[2m^--[22m Unexpected token ParenthesisBlock[39m
+[2m┆[22m
+[2m│       max-width: (pointer: fine);[22m
+[2m│     }[22m
+
+[32m✓[39m 8789 modules transformed.
+rendering chunks...
+Emitted proxy files to build output
+computing gzip size...
+[2mdist/[22m[32mpackage.json                        [39m[1m[2m    0.26 kB[22m[1m[22m[2m │ gzip:   0.18 kB[22m
+[2mdist/[22m[32mindex.html                          [39m[1m[2m    0.72 kB[22m[1m[22m[2m │ gzip:   0.42 kB[22m
+[2mdist/[22m[32mproxy.js                            [39m[1m[2m1,572.81 kB[22m[1m[22m
+[2mdist/[22m[35massets/index-ConyT3rL.css           [39m[1m[2m  391.72 kB[22m[1m[22m[2m │ gzip:  72.05 kB[22m
+[2mdist/[22m[36massets/purify.es-Bzr520pe.js        [39m[1m[2m   22.45 kB[22m[1m[22m[2m │ gzip:   8.63 kB[22m
+[2mdist/[22m[36massets/index.es-BprpxRmg.js         [39m[1m[2m  158.58 kB[22m[1m[22m[2m │ gzip:  52.93 kB[22m
+[2mdist/[22m[36massets/html2canvas.esm-Ge7aVWlp.js  [39m[1m[2m  201.40 kB[22m[1m[22m[2m │ gzip:  47.48 kB[22m
+[2mdist/[22m[36massets/index-Bjp-sH8Q.js            [39m[1m[33m1,987.42 kB[39m[22m[2m │ gzip: 599.34 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 1m 38s[39m
+SUCCESS  
