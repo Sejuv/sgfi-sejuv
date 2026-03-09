@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -54,6 +54,156 @@ function expenseNumberSortKey(num?: string): number {
   const year = parseInt(match[2], 10)
   return year * 1_000_000 + seq
 }
+
+// ─── Tabela com colunas redimensionáveis ──────────────────────────────────────
+
+const DEFAULT_COL_WIDTHS = [110, 260, 160, 110, 90, 105, 80, 100, 110]
+
+interface ResizableProps {
+  sortedFiltered: Expense[]
+  creditors: Creditor[]
+  onEditExpense: (e: Expense) => void
+  onToggleStatus: (id: string) => void
+  onDeleteConfirm: (c: { type: 'expense' | 'creditor' | 'contract'; id: string; label: string }) => void
+}
+
+function ResizableExpensesTable({
+  sortedFiltered, creditors, onEditExpense, onToggleStatus, onDeleteConfirm,
+}: ResizableProps) {
+  const [colWidths, setColWidths] = useState<number[]>([...DEFAULT_COL_WIDTHS])
+  const dragging = useRef<{ col: number; startX: number; startW: number } | null>(null)
+
+  const onMouseDown = useCallback((col: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    dragging.current = { col, startX: e.clientX, startW: colWidths[col] }
+
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current) return
+      const delta = ev.clientX - dragging.current.startX
+      const newW = Math.max(50, dragging.current.startW + delta)
+      setColWidths(prev => {
+        const next = [...prev]
+        next[dragging.current!.col] = newW
+        return next
+      })
+    }
+    const onUp = () => {
+      dragging.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [colWidths])
+
+  const headers = ['Nº Despesa', 'Descrição', 'Credor', 'Valor', 'Tipo', 'Vencimento', 'Mês', 'Status', 'Ações']
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <table style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) + 'px', borderCollapse: 'collapse' }}>
+        <colgroup>
+          {colWidths.map((w, i) => <col key={i} style={{ width: w + 'px' }} />)}
+        </colgroup>
+        <thead>
+          <tr className="border-b">
+            {headers.map((h, i) => (
+              <th
+                key={i}
+                className="relative px-3 py-3 text-left text-sm font-medium text-muted-foreground select-none bg-background"
+                style={{ width: colWidths[i] + 'px', overflow: 'hidden' }}
+              >
+                <span className="block truncate">{h}</span>
+                {i < headers.length - 1 && (
+                  <span
+                    onMouseDown={(e) => onMouseDown(i, e)}
+                    className="absolute top-0 right-0 h-full w-2 cursor-col-resize flex items-center justify-center group"
+                    title="Arraste para redimensionar"
+                  >
+                    <span className="w-px h-4 bg-border group-hover:bg-primary group-hover:w-0.5 transition-all" />
+                  </span>
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sortedFiltered.map((expense) => {
+            const creditor = creditors.find((c) => c.id === expense.creditorId)
+            return (
+              <tr key={expense.id} className="border-b hover:bg-muted/50 transition-colors">
+                <td className="px-3 py-2 align-top" style={{ width: colWidths[0] + 'px', overflow: 'hidden' }}>
+                  <span className="font-mono text-sm font-semibold text-primary break-all">
+                    {expense.number || '—'}
+                  </span>
+                </td>
+                <td className="px-3 py-2 align-top font-medium" style={{ width: colWidths[1] + 'px', overflow: 'hidden' }}>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="whitespace-normal break-words leading-snug text-sm">{expense.description}</span>
+                    <ClassificationBadge classification={expense.classification} />
+                  </div>
+                </td>
+                <td className="px-3 py-2 align-top text-sm" style={{ width: colWidths[2] + 'px', overflow: 'hidden' }}>
+                  <span className="whitespace-normal break-words leading-snug">{creditor?.name || '-'}</span>
+                </td>
+                <td className="px-3 py-2 align-top tabular-nums font-semibold text-sm" style={{ width: colWidths[3] + 'px', overflow: 'hidden' }}>
+                  <span className="break-all">{formatCurrency(expense.amount)}</span>
+                </td>
+                <td className="px-3 py-2 align-top" style={{ width: colWidths[4] + 'px', overflow: 'hidden' }}>
+                  <Badge variant="outline" className="text-xs">
+                    {expense.type === 'fixed' ? 'Fixa' : 'Variável'}
+                  </Badge>
+                </td>
+                <td className="px-3 py-2 align-top text-sm" style={{ width: colWidths[5] + 'px', overflow: 'hidden' }}>
+                  <span className="break-all">{formatDate(expense.dueDate)}</span>
+                </td>
+                <td className="px-3 py-2 align-top font-medium text-sm" style={{ width: colWidths[6] + 'px', overflow: 'hidden' }}>
+                  <span className="break-all">{expense.month}</span>
+                </td>
+                <td className="px-3 py-2 align-top" style={{ width: colWidths[7] + 'px', overflow: 'hidden' }}>
+                  <Badge
+                    variant={expense.status === 'paid' ? 'default' : expense.status === 'overdue' ? 'destructive' : 'secondary'}
+                    className="cursor-pointer text-xs"
+                    onClick={() => onToggleStatus(expense.id)}
+                  >
+                    {expense.status === 'paid' ? 'Pago' : expense.status === 'overdue' ? 'Vencido' : 'Pendente'}
+                  </Badge>
+                </td>
+                <td className="px-3 py-2 align-top" style={{ width: colWidths[8] + 'px', overflow: 'hidden' }}>
+                  <div className="flex gap-1 justify-end flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEditExpense(expense)}
+                      className="gap-1 text-primary border-primary/40 hover:bg-primary/10 h-7 text-xs px-2"
+                    >
+                      <PencilSimple size={12} weight="bold" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDeleteConfirm({
+                        type: 'expense',
+                        id: expense.id,
+                        label: `${expense.number ? expense.number + ' – ' : ''}${expense.description}`,
+                      })}
+                      title="Excluir despesa"
+                      className="h-7 px-2"
+                    >
+                      <Trash size={14} className="text-destructive" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 
 export function ExpensesView({
   expenses,
@@ -334,100 +484,13 @@ export function ExpensesView({
             <Button variant="link" className="mt-1 text-sm" onClick={clearFilters}>Limpar filtros</Button>
           </div>
         ) : (
-          <div className="w-full overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-24 shrink-0">Nº Despesa</TableHead>
-                  <TableHead className="min-w-[160px]">Descrição</TableHead>
-                  <TableHead className="min-w-[120px]">Credor</TableHead>
-                  <TableHead className="w-28 shrink-0">Valor</TableHead>
-                  <TableHead className="w-20 shrink-0">Tipo</TableHead>
-                  <TableHead className="w-24 shrink-0">Vencimento</TableHead>
-                  <TableHead className="w-20 shrink-0">Mês</TableHead>
-                  <TableHead className="w-24 shrink-0">Status</TableHead>
-                  <TableHead className="text-right w-24 shrink-0">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedFiltered.map((expense) => {
-                  const creditor = creditors.find((c) => c.id === expense.creditorId)
-                  return (
-                    <TableRow key={expense.id}>
-                      <TableCell>
-                        <span className="font-mono text-sm font-semibold text-primary">
-                          {expense.number || '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium max-w-[260px]">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="whitespace-normal break-words leading-snug">{expense.description}</span>
-                          <ClassificationBadge classification={expense.classification} />
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[160px] whitespace-normal break-words leading-snug">{creditor?.name || '-'}</TableCell>
-                      <TableCell className="tabular-nums font-semibold">
-                        {formatCurrency(expense.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {expense.type === 'fixed' ? 'Fixa' : 'Variável'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatDate(expense.dueDate)}</TableCell>
-                      <TableCell className="font-medium">{expense.month}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            expense.status === 'paid'
-                              ? 'default'
-                              : expense.status === 'overdue'
-                              ? 'destructive'
-                              : 'secondary'
-                          }
-                          className="cursor-pointer"
-                          onClick={() => onToggleStatus(expense.id)}
-                        >
-                          {expense.status === 'paid'
-                            ? 'Pago'
-                            : expense.status === 'overdue'
-                            ? 'Vencido'
-                            : 'Pendente'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-1 justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onEditExpense(expense)}
-                            className="gap-1 text-primary border-primary/40 hover:bg-primary/10"
-                          >
-                            <PencilSimple size={14} weight="bold" />
-                            Editar
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              onDeleteConfirm({
-                                type: 'expense',
-                                id: expense.id,
-                                label: `${expense.number ? expense.number + ' – ' : ''}${expense.description}`,
-                              })
-                            }
-                            title="Excluir despesa"
-                          >
-                            <Trash size={16} className="text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <ResizableExpensesTable
+            sortedFiltered={sortedFiltered}
+            creditors={creditors}
+            onEditExpense={onEditExpense}
+            onToggleStatus={onToggleStatus}
+            onDeleteConfirm={onDeleteConfirm}
+          />
         )}
       </CardContent>
     </Card>
