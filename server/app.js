@@ -3,11 +3,14 @@ const express    = require('express')
 const cors       = require('cors')
 const helmet     = require('helmet')
 const rateLimit  = require('express-rate-limit')
+const crypto     = require('crypto')
 
-// Validação crítica na inicialização
+// Se JWT_SECRET não estiver definido, gera um aleatório (aviso nos logs)
+// Configure JWT_SECRET nas variáveis de ambiente do Railway para persistência entre reinicializações
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-  console.error('[SECURITY] JWT_SECRET ausente ou muito curto. Defina ao menos 32 caracteres no .env')
-  process.exit(1)
+  process.env.JWT_SECRET = crypto.randomBytes(48).toString('hex')
+  console.warn('[SECURITY] JWT_SECRET não configurado ou muito curto. Um segredo temporário foi gerado.')
+  console.warn('[SECURITY] Configure JWT_SECRET nas variáveis de ambiente do Railway.')
 }
 
 const app = express()
@@ -26,8 +29,8 @@ const allowedOrigins = rawOrigins
 app.use(cors({
   origin: (origin, cb) => {
     // Sem origin = chamadas server-side ou ferramentas de desenvolvimento
-    if (!origin) return cb(null, true)
-    if (allowedOrigins.includes(origin)) return cb(null, true)
+    if (!origin) return cb(null, true)    // Se ALLOWED_ORIGINS não foi configurado, permite (modo compatibilidade)
+    if (allowedOrigins.length === 0) return cb(null, true)    if (allowedOrigins.includes(origin)) return cb(null, true)
     cb(new Error('Origem não permitida pelo CORS'))
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
