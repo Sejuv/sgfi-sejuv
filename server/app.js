@@ -1,36 +1,25 @@
 require('dotenv').config()
-const express    = require('express')
-const cors       = require('cors')
-const helmet     = require('helmet')
-const rateLimit  = require('express-rate-limit')
-const crypto     = require('crypto')
+const express = require('express')
+const cors    = require('cors')
+const crypto  = require('crypto')
 
-// Se JWT_SECRET não estiver definido, gera um aleatório (aviso nos logs)
-// Configure JWT_SECRET nas variáveis de ambiente do Railway para persistência entre reinicializações
+// Se JWT_SECRET não estiver definido, gera um aleatório temporário
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   process.env.JWT_SECRET = crypto.randomBytes(48).toString('hex')
-  console.warn('[SECURITY] JWT_SECRET não configurado ou muito curto. Um segredo temporário foi gerado.')
-  console.warn('[SECURITY] Configure JWT_SECRET nas variáveis de ambiente do Railway.')
+  console.warn('[SECURITY] JWT_SECRET não configurado. Configure nas variáveis do Railway.')
 }
 
 const app = express()
 
-// ── Cabeçalhos de segurança HTTP ───────────────────────────────
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-}))
-
-// ── CORS restrito ──────────────────────────────────────────────
-const rawOrigins = process.env.ALLOWED_ORIGINS || ''
-const allowedOrigins = rawOrigins
-  ? rawOrigins.split(',').map(o => o.trim())
-  : []
+// ── CORS ──────────────────────────────────────────────────────
+const rawOrigins    = process.env.ALLOWED_ORIGINS || ''
+const allowedOrigins = rawOrigins ? rawOrigins.split(',').map(o => o.trim()) : []
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Sem origin = chamadas server-side ou ferramentas de desenvolvimento
-    if (!origin) return cb(null, true)    // Se ALLOWED_ORIGINS não foi configurado, permite (modo compatibilidade)
-    if (allowedOrigins.length === 0) return cb(null, true)    if (allowedOrigins.includes(origin)) return cb(null, true)
+    if (!origin) return cb(null, true)
+    if (allowedOrigins.length === 0) return cb(null, true)
+    if (allowedOrigins.includes(origin)) return cb(null, true)
     cb(new Error('Origem não permitida pelo CORS'))
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -38,29 +27,13 @@ app.use(cors({
   credentials: false,
 }))
 
-// ── Rate limit global (anti-DDoS básico) ───────────────────────
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Muitas requisições. Tente novamente em breve.' },
-}))
-
-// ── Rate limit específico para login (anti-brute-force) ────────
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: { error: 'Muitas tentativas de login. Aguarde 15 minutos.' },
-})
-
 app.use(express.json({ limit: '500kb' }))
 app.use(express.urlencoded({ extended: true, limit: '500kb' }))
 
 const requireAuth = require('./middleware/auth')
 
 // ── Rotas ─────────────────────────────────────────────────────
-app.use('/api/auth',          loginLimiter, require('./routes/auth'))
+app.use('/api/auth',          require('./routes/auth'))
 
 // Todas as rotas abaixo exigem token JWT válido
 app.use('/api/creditors',     requireAuth, require('./routes/creditors'))
