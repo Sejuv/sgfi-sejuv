@@ -8,11 +8,17 @@
 
 const BASE = (import.meta.env.VITE_API_URL ?? '') + '/api'
 
+const TOKEN_KEY = 'sgfi_token'
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const token = sessionStorage.getItem(TOKEN_KEY)
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
-    body:    body ? JSON.stringify(body) : undefined,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
   })
   // Resposta sem conteúdo
   if (res.status === 204) return undefined as T
@@ -26,14 +32,14 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     if (res.ok) return undefined as T
     throw new Error(`Erro ${res.status}`)
   }
-  if (!res.ok) throw new Error(data?.error || data?.message || 'Erro na requisição')
+  if (!res.ok) throw new Error(data?.error || 'Erro na requisição')
   return data as T
 }
 
 // ── Auth / Usuários ───────────────────────────────────────────
 export const authApi = {
   login:    (email: string, password: string) =>
-    req<{ user: { id: string; name: string; email: string; role: string } }>('POST', '/auth/login', { email, password }),
+    req<{ user: { id: string; name: string; email: string; role: string }; token: string }>('POST', '/auth/login', { email, password }),
   register: (data: { name: string; email: string; password: string; role?: string }) =>
     req<{ user: { id: string } }>('POST', '/auth/register', data),
 }

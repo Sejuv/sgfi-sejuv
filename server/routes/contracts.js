@@ -36,7 +36,7 @@ router.get('/', async (_req, res) => {
   try {
     const snap = await col().orderBy('createdAt', 'desc').get()
     res.json(snap.docs.map(contractToFront))
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 // POST /api/contracts
@@ -53,7 +53,7 @@ router.post('/', async (req, res) => {
     await col().doc(id).set(data)
     const doc = await col().doc(id).get()
     res.status(201).json(contractToFront(doc))
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 // PUT /api/contracts/:id
@@ -70,7 +70,7 @@ router.put('/:id', async (req, res) => {
       items: (items || []).map((item, i) => ({ ...item, consumed: item.consumed ?? 0, sort: i }))
     })
     res.json(contractToFront(await ref.get()))
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 // PATCH /api/contracts/:id/items/:itemId/consumed
@@ -87,7 +87,7 @@ router.patch('/:id/items/:itemId/consumed', async (req, res) => {
     if (!updated) return res.status(404).json({ error: 'Item não encontrado' })
     await ref.update({ items })
     res.json(itemToFront(updated))
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 // DELETE /api/contracts/:id
@@ -95,7 +95,7 @@ router.delete('/:id', async (req, res) => {
   try {
     await col().doc(req.params.id).delete()
     res.json({ ok: true })
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 module.exports = router

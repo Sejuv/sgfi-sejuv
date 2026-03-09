@@ -22,6 +22,14 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
+  build: {
+    // Source maps desabilitados em produção — evita exposição do código-fonte no DevTools
+    sourcemap: false,
+    // Minificação máxima com esbuild (padrão do Vite, mas tornamos explícito)
+    minify: 'esbuild',
+    // Remove console.log e debugger do bundle de produção
+    target: 'es2017',
+  },
   server: {
     proxy: {
       '/api': {

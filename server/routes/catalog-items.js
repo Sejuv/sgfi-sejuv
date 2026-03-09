@@ -28,7 +28,7 @@ router.get('/', async (_, res) => {
   try {
     const snap = await col().orderBy('description').get()
     res.json(snap.docs.map(toFront))
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 // POST /api/catalog-items
@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
     await col().doc(id).set(data)
     const doc = await col().doc(id).get()
     res.status(201).json(toFront(doc))
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 // PUT /api/catalog-items/:id
@@ -64,7 +64,7 @@ router.put('/:id', async (req, res) => {
       keyword4: keyword4||null, notes: notes||null
     })
     res.json(toFront(await ref.get()))
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 // DELETE /api/catalog-items/:id
@@ -72,7 +72,7 @@ router.delete('/:id', async (req, res) => {
   try {
     await col().doc(req.params.id).delete()
     res.json({ ok: true })
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 module.exports = router

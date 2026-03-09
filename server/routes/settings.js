@@ -9,7 +9,7 @@ router.get('/', async (_req, res) => {
   try {
     const snap = await settingsDoc().get()
     res.json(snap.exists ? snap.data() : {})
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 // PUT /api/settings — salva/atualiza um ou mais pares { key: value }
@@ -19,7 +19,7 @@ router.put('/', async (req, res) => {
   try {
     await settingsDoc().set(entries, { merge: true })
     res.json({ ok: true })
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(500).json({ error: `Erro interno do servidor` }) }
 })
 
 module.exports = router
