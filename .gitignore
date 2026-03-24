@@ -24,6 +24,13 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Temporários
+saida.txt
+output.json
+build-log.txt
+$null
+*.ps1
+
 # IDEs
 .vscode/settings.json
 .idea/

@@ -63,7 +63,7 @@ function AppContent() {
   const [categories,   setCategories]   = useState<Category[]>([])
   const [contracts,    setContracts]    = useState<Contract[]>([])
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([])
-  const [loading,      setLoading]      = useState(true)
+  const [loading,      setLoading]      = useState(isAuthenticated) // true só se já autenticado
 
   // Navegação
   const [activeView, setActiveView] = useState('dashboard')
@@ -326,13 +326,11 @@ function AppContent() {
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <Wallet size={24} weight="duotone" className="text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold font-display">SGFI</h1>
-                <p className="text-xs text-muted-foreground">Sistema Financeiro</p>
-              </div>
+              <img
+                src="/Logo SGFI.png"
+                alt="Logo SGFI"
+                className="w-full max-h-16 object-contain"
+              />
             </div>
           </SidebarHeader>
 
