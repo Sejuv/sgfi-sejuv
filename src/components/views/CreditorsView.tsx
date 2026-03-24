@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Plus, Users, Trash, PencilSimple } from '@phosphor-icons/react'
 import { Creditor } from '@/lib/types'
 
@@ -27,8 +27,8 @@ export function CreditorsView({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="font-display">Gerenciar Credores</CardTitle>
-            <CardDescription>Fornecedores e prestadores de serviço</CardDescription>
+            <h2 className="text-lg font-semibold font-display">Gerenciar Credores</h2>
+            <p className="text-sm text-muted-foreground">Fornecedores e prestadores de serviço</p>
           </div>
           <Button onClick={onNewCreditor}>
             <Plus className="mr-2" size={18} weight="bold" />
