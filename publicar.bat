@@ -1,6 +1,5 @@
 @echo off
 title Publicar SGFI
-
 cd /d "%~dp0"
 
 echo.
@@ -9,25 +8,26 @@ echo    PUBLICAR SGFI - VERCEL
 echo ==========================================
 echo.
 
-echo Digite a mensagem do commit:
-set /p MSG=^> 
-
+set /p MSG=Mensagem do commit: 
 if "%MSG%"=="" set MSG=deploy: atualizacao
 
 echo.
-echo [1/4] git add...
+echo [1/3] Adicionando arquivos...
 git add .
 
-echo [2/4] git commit...
+echo [2/3] Commitando...
 git commit -m "%MSG%"
 
-echo [3/4] git push...
+echo [3/3] Enviando para o GitHub...
 git push
 
-echo [4/4] vercel deploy...
-call vercel --prod
+echo.
+echo Fazendo deploy no Vercel...
+npx vercel --prod --yes
 
 echo.
-echo Deploy concluido!
+echo ==========================================
+echo   Concluido! sgfi-sejuv.vercel.app
+echo ==========================================
 echo.
 pause
