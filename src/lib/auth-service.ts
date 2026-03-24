@@ -14,38 +14,12 @@ export async function validarCredenciais(
   senha: string, 
   usuarios: Usuario[]
 ): Promise<Usuario | null> {
-  console.log('🔐 Validando credenciais...')
-  console.log('📧 Email recebido:', email)
-  console.log('👥 Total de usuários:', usuarios.length)
-  console.log('📋 Lista de usuários:', usuarios.map(u => ({ email: u.email, id: u.id })))
-  
   const senhaHash = await hashSenha(senha)
-  console.log('🔑 Hash da senha digitada:', senhaHash)
-  
-  const usuario = usuarios.find(u => {
-    const emailMatch = u.email === email
-    const senhaMatch = u.senha === senhaHash
-    const ativoCheck = u.ativo
-    
-    console.log(`Verificando usuário ${u.email}:`, {
-      emailMatch,
-      senhaMatch,
-      ativoCheck,
-      senhaEsperada: u.senha
-    })
-    
-    return emailMatch && senhaMatch && ativoCheck
-  })
-  
-  console.log('✅ Usuário encontrado:', usuario ? `Sim (${usuario.nome})` : 'Não')
-  
-  // Fallback apenas se for admin padrão E não houver usuários
-  if (!usuario && usuarios.length === 0 && email === "admin@iraucuba.ce.gov.br" && senha === "admin123") {
-    console.log('⚠️ Usando credenciais padrão (nenhum usuário cadastrado)')
-    const adminPadrao = await criarUsuarioInicial()
-    return adminPadrao
-  }
-  
+
+  const usuario = usuarios.find(u =>
+    u.email === email && u.senha === senhaHash && u.ativo
+  )
+
   return usuario || null
 }
 

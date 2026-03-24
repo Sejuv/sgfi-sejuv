@@ -12,14 +12,10 @@ export function useKV<T>(key: string, defaultValue: T): [T, (value: T | ((val: T
     try {
       const item = window.localStorage.getItem(key);
       if (item) {
-        const parsed = JSON.parse(item);
-        console.log(`✅ Carregando ${key} do localStorage:`, parsed);
-        return parsed;
+        return JSON.parse(item);
       }
-      console.log(`ℹ️ Usando valor padrão para ${key}:`, defaultValue);
       return defaultValue;
-    } catch (error) {
-      console.error(`❌ Erro ao ler ${key} do localStorage:`, error);
+    } catch {
       return defaultValue;
     }
   });
@@ -33,23 +29,16 @@ export function useKV<T>(key: string, defaultValue: T): [T, (value: T | ((val: T
     }
     
     try {
-      const serialized = JSON.stringify(storedValue);
-      window.localStorage.setItem(key, serialized);
-      console.log(`💾 Salvando ${key} no localStorage:`, storedValue);
-    } catch (error) {
-      console.error(`❌ Erro ao salvar ${key} no localStorage:`, error);
+      window.localStorage.setItem(key, JSON.stringify(storedValue));
+    } catch {
+      // falha silenciosa — storage cheio ou modo privativo
     }
   }, [key, storedValue]);
 
   // Função para atualizar o valor (suporta função ou valor direto)
   const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      console.log(`🔄 Atualizando ${key}:`, valueToStore);
-      setStoredValue(valueToStore);
-    } catch (error) {
-      console.error(`❌ Erro ao atualizar ${key}:`, error);
-    }
+    const valueToStore = value instanceof Function ? value(storedValue) : value;
+    setStoredValue(valueToStore);
   };
 
   return [storedValue, setValue];

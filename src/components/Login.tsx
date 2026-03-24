@@ -93,9 +93,8 @@ export function Login({ onLogin, erro, usuarios, onAtualizarUsuario }: LoginProp
       setEmailRecuperacao("")
       setNovaSenha("")
       setConfirmarNovaSenha("")
-    } catch (error) {
+    } catch {
       toast.error("Erro ao alterar senha")
-      console.error(error)
     }
   }
 

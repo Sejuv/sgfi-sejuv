@@ -58,7 +58,7 @@ function expenseNumberSortKey(num?: string): number {
 // ─── Tabela com colunas redimensionáveis ──────────────────────────────────────
 // Percentuais somam 100% — a tabela sempre ocupa toda a largura disponível
 // Índices: 0=Nº  1=Descrição  2=Credor  3=Valor  4=Tipo  5=Vencimento  6=Mês  7=Status  8=Ações
-const DEFAULT_COL_PCTS = [9, 24, 15, 9, 7, 9, 7, 9, 11]
+const DEFAULT_COL_PCTS = [9, 22, 14, 9, 7, 9, 7, 9, 14]
 
 interface ResizableProps {
   sortedFiltered: Expense[]

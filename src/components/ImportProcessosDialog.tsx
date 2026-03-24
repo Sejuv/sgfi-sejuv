@@ -48,8 +48,7 @@ export function ImportProcessosDialog({ open, onOpenChange, onImport }: ImportPr
         fileInputRef.current.value = ""
       }
       setFileName("")
-    } catch (error) {
-      console.error(error)
+    } catch {
       toast.error("Erro ao importar arquivo. Verifique se o formato está correto.")
     } finally {
       setLoading(false)

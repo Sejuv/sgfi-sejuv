@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardHeader } from '@/components/ui/card'
 import { Plus, Users, Trash, PencilSimple } from '@phosphor-icons/react'
 import { Creditor } from '@/lib/types'
 
@@ -44,45 +44,34 @@ export function CreditorsView({
             <p className="text-sm">Adicione fornecedores para vincular às despesas.</p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {creditors.map((creditor) => (
-              <Card key={creditor.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+              <Card key={creditor.id} className="py-0">
+                <CardHeader className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg truncate">{creditor.name}</CardTitle>
+                      <p className="text-sm font-semibold whitespace-normal break-words leading-snug">{creditor.name}</p>
                       {creditor.documentNumber && (
-                        <p className="text-sm text-muted-foreground mt-1">{creditor.documentNumber}</p>
+                        <p className="text-xs text-muted-foreground font-mono mt-0.5">{creditor.documentNumber}</p>
                       )}
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button variant="ghost" size="sm" onClick={() => onEditCreditor(creditor)}>
-                        <PencilSimple size={15} />
+                    <div className="flex gap-0.5 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEditCreditor(creditor)}>
+                        <PencilSimple size={14} />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
+                        className="h-7 w-7"
                         onClick={() =>
                           onDeleteConfirm({ type: 'creditor', id: creditor.id, label: creditor.name })
                         }
                       >
-                        <Trash size={15} className="text-destructive" />
+                        <Trash size={14} className="text-destructive" />
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 space-y-1">
-                  {creditor.contact && <p className="text-sm text-muted-foreground">{creditor.contact}</p>}
-                  {creditor.email && <p className="text-sm text-muted-foreground">{creditor.email}</p>}
-                  {(creditor.street || creditor.city) && (
-                    <p className="text-xs text-muted-foreground">
-                      {[creditor.street, creditor.neighborhood, creditor.city, creditor.uf]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </p>
-                  )}
-                  {creditor.cep && <p className="text-xs text-muted-foreground">CEP: {creditor.cep}</p>}
-                </CardContent>
               </Card>
             ))}
           </div>

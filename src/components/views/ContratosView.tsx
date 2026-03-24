@@ -327,7 +327,7 @@ export function ContratosView({
                   <p className="text-sm mt-1">Clique em "Novo Contrato" para começar.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -335,7 +335,6 @@ export function ContratosView({
                         <TableHead>Objeto</TableHead>
                         <TableHead>Fornecedor</TableHead>
                         <TableHead>Vigência</TableHead>
-                        <TableHead>Itens</TableHead>
                         <TableHead className="text-right">Valor Total</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Alertas</TableHead>
@@ -374,20 +373,15 @@ export function ContratosView({
                           )
 
                         return (
-                          <TableRow key={contract.id}>
-                            <TableCell className="font-mono font-semibold">{contract.number}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{contract.description}</TableCell>
-                            <TableCell className="text-muted-foreground">{creditor?.name || '—'}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <CalendarBlank size={13} />
-                                <span>{contract.startDate} → {contract.endDate}</span>
+                          <TableRow key={contract.id} className="align-top">
+                            <TableCell className="font-mono font-semibold whitespace-normal break-words min-w-[110px]">{contract.number}</TableCell>
+                            <TableCell className="whitespace-normal break-words min-w-[160px]">{contract.description}</TableCell>
+                            <TableCell className="text-muted-foreground whitespace-normal break-words min-w-[160px]">{creditor?.name || '—'}</TableCell>
+                            <TableCell className="min-w-[130px]">
+                              <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1"><CalendarBlank size={13} /><span>{contract.startDate}</span></div>
+                                <div className="pl-[17px] text-xs">→ {contract.endDate}</div>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">
-                                {contract.items.length} {contract.items.length === 1 ? 'item' : 'itens'}
-                              </Badge>
                             </TableCell>
                             <TableCell className="text-right tabular-nums font-medium">
                               {formatCurrency(total)}

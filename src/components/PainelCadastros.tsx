@@ -381,20 +381,17 @@ export function PainelCadastros() {
 
   const confirmImportAction = () => {
     const { type, items } = confirmImport
-    console.log(`📥 Importando ${type}:`, items.length)
+
     
     switch(type) {
       case 'secretarias':
         setSecretarias((current) => {
           const currentArray = current || []
-          console.log('📊 Secretarias atuais:', currentArray.length)
           const novosItens = items.map((item, index) => ({
             ...item,
             id: `${Date.now()}-${index}`,
           }))
-          const resultado = [...currentArray, ...novosItens]
-          console.log('✅ Total após importação:', resultado.length)
-          return resultado
+          return [...currentArray, ...novosItens]
         })
         setImportSecretariasOpen(false)
         break

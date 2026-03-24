@@ -36,16 +36,20 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarSeparator,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { Badge } from '@/components/ui/badge'
 import { expensesApi, creditorsApi, categoriesApi, contractsApi } from '@/lib/api'
 import { BottomBar } from '@/components/BottomBar'
+import { AIAssistant } from '@/components/AIAssistant'
 import { Expense, Creditor, Category, Contract, ContractItem, CatalogItem } from '@/lib/types'
 import { formatCurrency, updateExpenseStatus } from '@/lib/calculations'
 import {
   ChartPieSlice, Plus, SignOut, Wallet, Users, DownloadSimple,
-  Gear, FileText,
+  Gear, FileText, Sun, Moon, Bell,
 } from '@phosphor-icons/react'
+import { ThemeProvider, useTheme } from '@/lib/theme-context'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { catalogItemsApi } from '@/lib/api'
@@ -56,6 +60,7 @@ type DeleteConfirm = { type: 'expense' | 'creditor' | 'contract'; id: string; la
 // â”€â”€ Componente principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AppContent() {
   const { currentUser, logout, isAuthenticated } = useAuth()
+  const { toggleTheme, isDark } = useTheme()
 
   // Estado global
   const [expenses,     setExpenses]     = useState<Expense[]>([])
@@ -268,12 +273,27 @@ function AppContent() {
 
   const updatedExpenses = updateExpenseStatus(expenses)
 
+  const overdueCount  = updatedExpenses.filter(e => e.status === 'overdue').length
+  const pendingCount  = updatedExpenses.filter(e => e.status === 'pending').length
+
+  // Saudação personalizada por horário
+  const greeting = (() => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Bom dia'
+    if (h < 18) return 'Boa tarde'
+    return 'Boa noite'
+  })()
+
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard',  icon: ChartPieSlice },
-    { id: 'expenses',  label: 'Despesas',   icon: Wallet },
-    { id: 'creditors', label: 'Credores',   icon: Users },
-    { id: 'contratos', label: 'Contratos',  icon: FileText },
+    { id: 'dashboard', label: 'Dashboard',  icon: ChartPieSlice, badge: 0 },
+    { id: 'expenses',  label: 'Despesas',   icon: Wallet,        badge: overdueCount },
+    { id: 'creditors', label: 'Credores',   icon: Users,         badge: 0 },
+    { id: 'contratos', label: 'Contratos',  icon: FileText,      badge: 0 },
   ]
+
+  const activeItem  = menuItems.find(m => m.id === activeView)
+  const activeLabel = activeItem?.label ?? 'Dashboard'
+  const ActiveIcon  = activeItem?.icon ?? ChartPieSlice
 
   const renderContent = () => {
     switch (activeView) {
@@ -321,33 +341,39 @@ function AppContent() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-gradient-to-br from-muted/20 via-background to-primary/5">
+      <div className="flex min-h-screen w-full bg-background">
         {/* â”€â”€ Sidebar â”€â”€ */}
         <Sidebar>
-          <SidebarHeader>
-            <div className="flex items-center gap-3 px-4 py-3">
+          <SidebarHeader className="border-b border-sidebar-border">
+            <div className="flex items-center justify-center px-3 py-4">
               <img
                 src="/Logo SGFI.png"
                 alt="Logo SGFI"
-                className="w-full max-h-16 object-contain"
+                className="w-full max-h-14 object-contain"
               />
             </div>
           </SidebarHeader>
 
-          <SidebarContent>
+          <SidebarContent className="px-2 py-2 overflow-hidden">
             <SidebarGroup>
               <SidebarGroupLabel>Módulos</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {menuItems.map(({ id, label, icon: Icon }) => (
+                  {menuItems.map(({ id, label, icon: Icon, badge }) => (
                     <SidebarMenuItem key={id}>
                       <SidebarMenuButton
                         onClick={() => setActiveView(id)}
                         isActive={activeView === id}
                         tooltip={label}
+                        className="h-9 gap-3 rounded-lg"
                       >
-                        <Icon size={20} weight={activeView === id ? 'fill' : 'regular'} />
-                        <span>{label}</span>
+                        <Icon size={18} weight={activeView === id ? 'fill' : 'regular'} />
+                        <span className="flex-1 text-sm">{label}</span>
+                        {badge > 0 && (
+                          <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-[10px] leading-none">
+                            {badge}
+                          </Badge>
+                        )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -355,13 +381,15 @@ function AppContent() {
               </SidebarGroupContent>
             </SidebarGroup>
 
+            <SidebarSeparator className="my-2" />
+
             <SidebarGroup>
-              <SidebarGroupLabel>Ações Rápidas</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 px-2 mb-1">Ações Rápidas</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton onClick={() => setExpenseDialogOpen(true)} tooltip="Nova Despesa">
-                      <Plus size={20} weight="bold" />
+                      <Plus size={18} weight="bold" />
                       <span>Nova Despesa</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -370,19 +398,19 @@ function AppContent() {
                       onClick={() => { setEditingCreditor(null); setCreditorDialogOpen(true) }}
                       tooltip="Novo Credor"
                     >
-                      <Plus size={20} weight="bold" />
+                      <Plus size={18} weight="bold" />
                       <span>Novo Credor</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton onClick={() => setReportsDialogOpen(true)} tooltip="Relatórios">
-                      <DownloadSimple size={20} weight="bold" />
+                      <DownloadSimple size={18} weight="bold" />
                       <span>Relatórios</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton onClick={() => setSettingsDialogOpen(true)} tooltip="Configurações">
-                      <Gear size={20} weight="fill" />
+                      <Gear size={18} weight="fill" />
                       <span>Configurações</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -391,36 +419,70 @@ function AppContent() {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="pb-9">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <div className="flex items-center gap-3 px-4 py-3 border-t">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                      {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{currentUser?.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize truncate">
-                      {currentUser?.role?.replace('_', ' ')}
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={logout} title="Sair">
-                    <SignOut size={18} />
-                  </Button>
-                </div>
-              </SidebarMenuItem>
-            </SidebarMenu>
+          {/* Alerta de vencidas */}
+          {overdueCount > 0 && (
+            <div className="px-3 pb-2">
+              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2 text-xs text-destructive">
+                <Bell size={13} weight="fill" className="shrink-0" />
+                <span className="font-medium">
+                  {overdueCount} despesa{overdueCount > 1 ? 's' : ''} vencida{overdueCount > 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <SidebarFooter className="border-t border-sidebar-border p-3 pb-12">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm font-bold">
+                  {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate leading-tight">{currentUser?.name}</p>
+                <p className="text-[11px] text-muted-foreground capitalize truncate">
+                  {currentUser?.role === 'admin' ? 'âš¡ Administrador' : currentUser?.role?.replace('_', ' ')}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                title="Sair"
+                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <SignOut size={16} />
+              </Button>
+            </div>
           </SidebarFooter>
         </Sidebar>
 
-        {/* â”€â”€ Main â”€â”€ */}
+        {/* ── Main ── */}
         <main className="flex-1 overflow-auto">
           <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex h-16 items-center gap-4 px-6">
-              <SidebarTrigger />
+            <div className="flex h-16 items-center gap-3 px-6">
+              <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
+              <div className="h-5 w-px bg-border mx-1" />
+              <div className="flex items-center gap-2">
+                <ActiveIcon size={18} weight="fill" className="text-primary" />
+                <span className="font-display font-semibold text-sm text-foreground tracking-tight">
+                  {activeLabel}
+                </span>
+              </div>
               <div className="flex-1" />
+              <span className="hidden md:block text-xs text-muted-foreground">
+                {greeting}, <span className="font-medium text-foreground">{currentUser?.name?.split(' ')[0]}</span>
+              </span>
+              <div className="hidden md:block h-4 w-px bg-border" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                title={isDark ? 'Modo claro' : 'Modo escuro'}
+                className="rounded-full text-muted-foreground hover:text-foreground"
+              >
+                {isDark ? <Sun size={20} weight="bold" /> : <Moon size={20} weight="bold" />}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -432,7 +494,7 @@ function AppContent() {
               </Button>
             </div>
           </header>
-          <div className="p-6 pb-14">{renderContent()}</div>
+          <div className="p-6 pb-14 min-h-full">{renderContent()}</div>
         </main>
       </div>
 
@@ -512,6 +574,13 @@ function AppContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AIAssistant
+        activeView={activeView}
+        expenses={updatedExpenses}
+        creditors={creditors}
+        contracts={contracts}
+        userName={currentUser?.name}
+      />
       <BottomBar />
     </SidebarProvider>
   )
@@ -519,10 +588,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-      <Toaster />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+        <Toaster />
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

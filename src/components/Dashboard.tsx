@@ -19,6 +19,7 @@ import {
   updateExpenseStatus,
 } from '@/lib/calculations'
 import { motion } from 'framer-motion'
+import { useTheme } from '@/lib/theme-context'
 
 interface DashboardProps {
   expenses: Expense[]
@@ -26,24 +27,23 @@ interface DashboardProps {
   contracts: Contract[]
 }
 
-const CHART_COLORS_TYPE: string[] = [
-  'oklch(0.35 0.08 250)',
-  'oklch(0.65 0.15 190)',
-]
-
-const CHART_COLORS_CLASS: string[] = [
-  'oklch(0.45 0.15 220)',
-  'oklch(0.60 0.18 80)',
-  'oklch(0.50 0.08 250)',
-]
-
-const cardAnim = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-}
-
 export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
+  const { isDark } = useTheme()
   const updatedExpenses = useMemo(() => updateExpenseStatus(expenses), [expenses])
+
+  // Cores dos gráficos adaptadas ao tema
+  const chartColorsType  = isDark
+    ? ['oklch(0.65 0.18 255)', 'oklch(0.55 0.18 195)']
+    : ['oklch(0.38 0.14 255)', 'oklch(0.58 0.18 195)']
+  const chartColorsClass = isDark
+    ? ['oklch(0.55 0.18 220)', 'oklch(0.68 0.17 68)', 'oklch(0.60 0.10 255)']
+    : ['oklch(0.45 0.15 220)', 'oklch(0.60 0.18 80)', 'oklch(0.50 0.08 250)']
+  const lineColorActual    = isDark ? 'oklch(0.65 0.18 255)' : 'oklch(0.38 0.14 255)'
+  const lineColorProjected = isDark ? 'oklch(0.55 0.18 195)' : 'oklch(0.58 0.18 195)'
+  const gridStroke  = isDark ? 'oklch(0.26 0.03 255)' : 'oklch(0.88 0.008 240)'
+  const axisStroke  = isDark ? 'oklch(0.58 0.02 240)' : 'oklch(0.52 0.02 240)'
+  const tooltipBg   = isDark ? '#1e2035' : '#ffffff'
+  const tooltipBorder = isDark ? '#2e3155' : '#e2e8f0'
 
   const metrics = useMemo(
     () => calculateDashboardMetrics(updatedExpenses, contracts),
@@ -87,68 +87,51 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
       </div>
 
       {/* Cards de métricas */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <motion.div initial="hidden" animate="visible" variants={cardAnim} transition={{ delay: 0, duration: 0.5 }}>
-          <Card className="border-l-4 border-l-primary">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Gasto (Mês)</CardTitle>
-              <Wallet className="h-5 w-5 text-primary" weight="duotone" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-display tabular-nums">
-                {formatCurrency(metrics.totalSpentThisMonth)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Despesas pagas no mês atual</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div initial="hidden" animate="visible" variants={cardAnim} transition={{ delay: 0.08, duration: 0.5 }}>
-          <Card className="border-l-4 border-l-warning">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total a Pagar</CardTitle>
-              <CurrencyCircleDollar className="h-5 w-5 text-warning" weight="duotone" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-display tabular-nums">
-                {formatCurrency(metrics.totalPending)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Despesas pendentes e vencidas</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div initial="hidden" animate="visible" variants={cardAnim} transition={{ delay: 0.16, duration: 0.5 }}>
-          <Card className="border-l-4 border-l-accent">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Saldo Disponível</CardTitle>
-              <TrendUp className="h-5 w-5 text-accent" weight="duotone" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-display tabular-nums">
-                {formatCurrency(metrics.availableBalance)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {contractStats.totalValue > 0 ? 'Saldo dos contratos ativos' : 'Nenhum contrato ativo'}
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div initial="hidden" animate="visible" variants={cardAnim} transition={{ delay: 0.24, duration: 0.5 }}>
-          <Card className="border-l-4 border-l-destructive">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vencimentos Próximos</CardTitle>
-              <Warning className="h-5 w-5 text-destructive" weight="duotone" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-display tabular-nums">
-                {metrics.upcomingDueCount}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Próximos 7 dias</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[
+          {
+            delay: 0, borderColor: 'border-l-primary',
+            title: 'Total Gasto (Mês)', value: formatCurrency(metrics.totalSpentThisMonth),
+            sub: 'Despesas pagas no mês atual',
+            icon: <Wallet className="h-5 w-5 text-primary" weight="duotone" />,
+          },
+          {
+            delay: 0.08, borderColor: 'border-l-warning',
+            title: 'Total a Pagar', value: formatCurrency(metrics.totalPending),
+            sub: 'Despesas pendentes e vencidas',
+            icon: <CurrencyCircleDollar className="h-5 w-5 text-warning" weight="duotone" />,
+          },
+          {
+            delay: 0.16, borderColor: 'border-l-accent',
+            title: 'Saldo Disponível', value: formatCurrency(metrics.availableBalance),
+            sub: contractStats.totalValue > 0 ? 'Saldo dos contratos ativos' : 'Nenhum contrato ativo',
+            icon: <TrendUp className="h-5 w-5 text-accent" weight="duotone" />,
+          },
+          {
+            delay: 0.24, borderColor: 'border-l-destructive',
+            title: 'Vencimentos Próximos', value: String(metrics.upcomingDueCount),
+            sub: 'Próximos 7 dias',
+            icon: <Warning className="h-5 w-5 text-destructive" weight="duotone" />,
+          },
+        ].map(({ delay, borderColor, title, value, sub, icon }) => (
+          <motion.div
+            key={title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, duration: 0.45 }}
+          >
+            <Card className={`border-l-4 ${borderColor} card-hover`}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                {icon}
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-display tabular-nums">{value}</div>
+                <p className="text-xs text-muted-foreground mt-1">{sub}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
       {/* Card de contratos ativos */}
@@ -252,10 +235,13 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
                       label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
                     >
                       {expensesByType.map((_, index) => (
-                        <Cell key={`type-${index}`} fill={CHART_COLORS_TYPE[index % CHART_COLORS_TYPE.length]} />
+                        <Cell key={`type-${index}`} fill={chartColorsType[index % chartColorsType.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Tooltip
+                      formatter={(value: number) => formatCurrency(value)}
+                      contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: 8 }}
+                    />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -293,10 +279,13 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
                       label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
                     >
                       {expensesByClass.map((_, index) => (
-                        <Cell key={`class-${index}`} fill={CHART_COLORS_CLASS[index % CHART_COLORS_CLASS.length]} />
+                        <Cell key={`class-${index}`} fill={chartColorsClass[index % chartColorsClass.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Tooltip
+                      formatter={(value: number) => formatCurrency(value)}
+                      contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: 8 }}
+                    />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -319,15 +308,18 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={forecastData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                  <XAxis dataKey="month" tick={{ fill: axisStroke }} />
+                  <YAxis tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} tick={{ fill: axisStroke }} />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: 8 }}
+                  />
                   <Legend />
                   <Line
                     type="monotone"
                     dataKey="actual"
-                    stroke="oklch(0.35 0.08 250)"
+                    stroke={lineColorActual}
                     strokeWidth={2}
                     name="Real"
                     dot={{ r: 4 }}
@@ -335,7 +327,7 @@ export function Dashboard({ expenses, creditors, contracts }: DashboardProps) {
                   <Line
                     type="monotone"
                     dataKey="projected"
-                    stroke="oklch(0.65 0.15 190)"
+                    stroke={lineColorProjected}
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     name="Projetado"
