@@ -12,7 +12,7 @@ import { useLocalStorage } from '@/hooks/use-local-storage'
 import { User as UserType, UserRole } from '@/lib/types'
 import { SystemEntity } from '@/lib/config-types'
 import { entitiesApi, usersApi } from '@/lib/api'
-import { Users, Buildings, Plus, Trash, PencilSimple, UploadSimple, User } from '@phosphor-icons/react'
+import { Users, Buildings, Plus, Trash, PencilSimple, UploadSimple, User, Robot, Eye, EyeSlash, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
 interface SettingsDialogProps {
@@ -30,6 +30,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [loginButtonBgColor, setLoginButtonBgColor] = useLocalStorage<string>('login-button-bg', '#4c4faf')
   const [loginButtonTextColor, setLoginButtonTextColor] = useLocalStorage<string>('login-button-text', '#ffffff')
   const [loginBackgroundOverlay, setLoginBackgroundOverlay] = useLocalStorage<string>('login-bg-overlay', 'dark')
+  const [openaiKey, setOpenaiKey] = useLocalStorage<string>('sgfi-openai-key', '')
+  const [showKey, setShowKey] = useState(false)
+  const [keySaved, setKeySaved] = useState(false)
 
   // Carrega entidades e usuários do banco quando o dialog abre
   useEffect(() => {
@@ -281,7 +284,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     >
       <div className="h-full flex flex-col">
         <Tabs defaultValue="users" className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users" className="gap-2">
               <Users size={16} />
               Usuários
@@ -293,6 +296,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <TabsTrigger value="appearance" className="gap-2">
               <PencilSimple size={16} />
               Aparência
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="gap-2">
+              <Robot size={16} />
+              IA
             </TabsTrigger>
           </TabsList>
 
@@ -1010,6 +1017,85 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     <li>Teste a combinação de cores na pré-visualização antes de salvar</li>
                   </ul>
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="integrations" className="m-0">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-950/40">
+                        <Robot size={20} className="text-violet-600 dark:text-violet-400" />
+                      </div>
+                      <div>
+                        <CardTitle>Integração com OpenAI</CardTitle>
+                        <CardDescription>
+                          Habilita correção gramatical e geração de palavras-chave com IA avançada
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="openai-key">Chave de API (API Key)</Label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Input
+                            id="openai-key"
+                            type={showKey ? 'text' : 'password'}
+                            value={openaiKey}
+                            onChange={(e) => { setOpenaiKey(e.target.value); setKeySaved(false) }}
+                            placeholder="sk-proj-..."
+                            className="pr-10 font-mono text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowKey(v => !v)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showKey ? <EyeSlash size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setKeySaved(true)
+                            toast.success('Chave salva com sucesso!')
+                            setTimeout(() => setKeySaved(false), 3000)
+                          }}
+                          className="shrink-0 gap-1.5"
+                        >
+                          {keySaved ? <CheckCircle size={16} className="text-green-500" /> : null}
+                          {keySaved ? 'Salvo!' : 'Salvar'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Obtenha sua chave em{' '}
+                        <span className="font-mono text-violet-600 dark:text-violet-400">platform.openai.com/api-keys</span>.
+                        A chave é armazenada apenas neste navegador e nunca é enviada para nossos servidores.
+                      </p>
+                    </div>
+
+                    {openaiKey && (
+                      <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/20 p-3 flex items-center gap-2">
+                        <CheckCircle size={16} className="text-green-600 dark:text-green-400 shrink-0" />
+                        <p className="text-xs text-green-700 dark:text-green-400">
+                          Chave configurada. A IA usará o GPT-4o-mini para correções e geração de palavras-chave.
+                        </p>
+                      </div>
+                    )}
+
+                    {!openaiKey && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20 p-3">
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          Sem chave configurada: as correções usarão o LanguageTool (gratuito, pt-BR).
+                          Com a chave OpenAI, a qualidade das correções é significativamente superior.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
           </div>

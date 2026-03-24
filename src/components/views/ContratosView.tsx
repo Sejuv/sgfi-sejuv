@@ -9,11 +9,12 @@ import { Label } from '@/components/ui/label'
 import {
   Plus, Trash, PencilSimple, CalendarBlank, FileText,
   BellRinging, Bell, ListBullets, Scales, CheckCircle,
-  Clock, XCircle, WarningCircle,
+  Clock, XCircle, WarningCircle, Sparkle, CircleNotch,
 } from '@phosphor-icons/react'
 import { Contract, Creditor, CatalogItem } from '@/lib/types'
 import { formatCurrency } from '@/lib/calculations'
 import { catalogItemsApi, pncpCatalogApi, type PncpCatalogItem } from '@/lib/api'
+import { correctGrammar, generateKeywords } from '@/lib/ai-service'
 import { toast } from 'sonner'
 
 interface DeleteConfirm {
@@ -65,6 +66,18 @@ export function ContratosView({
   const [pncpResults, setPncpResults]       = useState<PncpCatalogItem[]>([])
   const [pncpLoading, setPncpLoading]       = useState(false)
   const [showPncpDropdown, setShowPncpDropdown] = useState(false)
+  const [aiLoadingDesc, setAiLoadingDesc]   = useState(false)
+  const [aiLoadingSpec, setAiLoadingSpec]   = useState(false)
+  const [aiLoadingKw, setAiLoadingKw]       = useState(false)
+
+  // Efeito de digitação ao aplicar correção da IA
+  const typewriter = async (text: string, setter: (val: string) => void, speed = 16) => {
+    setter('')
+    for (let i = 1; i <= text.length; i++) {
+      setter(text.slice(0, i))
+      await new Promise(r => setTimeout(r, speed))
+    }
+  }
 
   // ── Contract alerts ───────────────────────────────────────
   const today = new Date()
@@ -460,7 +473,26 @@ export function ContratosView({
                   </h3>
                   <div className="grid gap-4 sm:grid-cols-12">
                     <div className="sm:col-span-12 grid gap-2">
-                      <Label>Descrição do item *</Label>
+                      <div className="flex items-center justify-between">
+                        <Label>Descrição do item *</Label>
+                        <button
+                          type="button"
+                          disabled={aiLoadingDesc || !catalogItemForm.description.trim()}
+                          onClick={async () => {
+                            setAiLoadingDesc(true)
+                            try {
+                              const corrected = await correctGrammar(catalogItemForm.description)
+                              await typewriter(corrected, (val) => setCatalogItemForm(f => ({ ...f, description: val })))
+                              toast.success('Descrição corrigida pela IA!')
+                            } catch { toast.error('Erro ao corrigir com IA') }
+                            finally { setAiLoadingDesc(false) }
+                          }}
+                          className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-violet-300 text-violet-600 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950/30 disabled:opacity-40 transition-colors"
+                        >
+                          {aiLoadingDesc ? <CircleNotch size={11} className="animate-spin" /> : <Sparkle size={11} weight="fill" />}
+                          Corrigir com IA
+                        </button>
+                      </div>
                       <Input
                         value={catalogItemForm.description}
                         onChange={(e) => setCatalogItemForm((f) => ({ ...f, description: e.target.value }))}
@@ -524,143 +556,32 @@ export function ContratosView({
                   </div>
                 </div>
 
-                {/* Informações PNCP */}
-                <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                    Informações PNCP
-                  </h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                      <Label>Catálogo PNCP</Label>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        value={catalogItemForm.pncpCatalog}
-                        onChange={(e) => {
-                          setCatalogItemForm((f) => ({ ...f, pncpCatalog: e.target.value }))
-                          setPncpQuery('')
-                          setPncpResults([])
-                          setShowPncpDropdown(false)
-                        }}
-                      >
-                        <option value="CATMAT">CATMAT – Catálogo de Materiais</option>
-                        <option value="CATSERV">CATSERV – Catálogo de Serviços</option>
-                      </select>
-                    </div>
-
-                    <div className="grid gap-2 relative">
-                      <Label>
-                        Buscar no {catalogItemForm.pncpCatalog}
-                        {pncpLoading && (
-                          <span className="ml-2 text-xs text-muted-foreground animate-pulse">buscando...</span>
-                        )}
-                      </Label>
-                      <Input
-                        value={pncpQuery}
-                        onChange={(e) => handlePncpSearch(e.target.value)}
-                        onBlur={() => setTimeout(() => setShowPncpDropdown(false), 200)}
-                        onFocus={() => pncpResults.length > 0 && setShowPncpDropdown(true)}
-                        placeholder={`Digite 3+ letras para buscar no ${catalogItemForm.pncpCatalog}...`}
-                      />
-                      {showPncpDropdown && pncpResults.length > 0 && (
-                        <div className="absolute z-50 top-[calc(100%+2px)] left-0 right-0 bg-background border rounded-md shadow-lg max-h-52 overflow-y-auto">
-                          {pncpResults.map((item, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-accent focus:bg-accent border-b last:border-b-0"
-                              onMouseDown={() => handleSelectPncpItem(item)}
-                            >
-                              <span className="font-medium">{item.codigo}</span>
-                              {item.codigo && ' – '}
-                              <span>{item.descricao}</span>
-                              {item.unidade && (
-                                <span className="ml-1 text-xs text-muted-foreground">({item.unidade})</span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Ao selecionar, preenche descrição, unidade e classificação automaticamente
-                      </p>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label>Classificação</Label>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        value={catalogItemForm.pncpClassification}
-                        onChange={(e) => setCatalogItemForm((f) => ({ ...f, pncpClassification: e.target.value }))}
-                      >
-                        <option value="">Selecionar classificação</option>
-                        {catalogItemForm.pncpCatalog === 'CATMAT' ? (
-                          <>
-                            <option value="10000000">10 – Material de Agricultura e Allied Products</option>
-                            <option value="20000000">20 – Material de Alimentação e Bebida</option>
-                            <option value="31000000">31 – Material Elétrico e Eletrônico</option>
-                            <option value="39000000">39 – Material de Iluminação</option>
-                            <option value="40000000">40 – Distribuição e Condicionamento</option>
-                            <option value="41000000">41 – Material de Laboratório</option>
-                            <option value="43000000">43 – TI e Comunicação</option>
-                            <option value="44000000">44 – Material de Escritório e Expediente</option>
-                            <option value="46000000">46 – Segurança e Proteção</option>
-                            <option value="47000000">47 – Material de Limpeza</option>
-                            <option value="48000000">48 – Material Gráfico e Fotográfico</option>
-                            <option value="49000000">49 – Esporte e Lazer</option>
-                            <option value="51000000">51 – Produtos Farmacêuticos e Médicos</option>
-                            <option value="56000000">56 – Mobiliário</option>
-                            <option value="60000000">60 – Equipamento de Transporte</option>
-                            <option value="72000000">72 – Instalação e Construção</option>
-                            <option value="78000000">78 – Construção Civil</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="72000000">72 – Engenharia, Pesquisa e Tecnologia</option>
-                            <option value="73000000">73 – Serviços Industriais</option>
-                            <option value="76000000">76 – Higiene e Limpeza</option>
-                            <option value="77000000">77 – Ambiental</option>
-                            <option value="78000000">78 – Construção e Reforma</option>
-                            <option value="80000000">80 – Gestão e Administração</option>
-                            <option value="81000000">81 – Educação e Treinamento</option>
-                            <option value="82000000">82 – Editorial e Gráfico</option>
-                            <option value="83000000">83 – Saúde</option>
-                            <option value="84000000">84 – Financeiro</option>
-                            <option value="92000000">92 – Defesa e Segurança</option>
-                          </>
-                        )}
-                        {catalogItemForm.pncpClassification &&
-                          !['10000000','20000000','31000000','39000000','40000000','41000000','43000000',
-                            '44000000','46000000','47000000','48000000','49000000','51000000','56000000',
-                            '60000000','72000000','73000000','76000000','77000000','78000000','80000000',
-                            '81000000','82000000','83000000','84000000','92000000',
-                          ].includes(catalogItemForm.pncpClassification) && (
-                            <option value={catalogItemForm.pncpClassification}>
-                              {catalogItemForm.pncpClassification}
-                            </option>
-                          )}
-                      </select>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label>Subclassificação</Label>
-                      <Input
-                        value={catalogItemForm.pncpSubclassification}
-                        onChange={(e) =>
-                          setCatalogItemForm((f) => ({ ...f, pncpSubclassification: e.target.value }))
-                        }
-                        placeholder="Código ou nome da subclassificação"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 {/* Especificação */}
                 <div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
                     Especificação do Item
                   </h3>
                   <div className="grid gap-2">
-                    <Label>Especificação</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Especificação</Label>
+                      <button
+                        type="button"
+                        disabled={aiLoadingSpec || !catalogItemForm.specification.trim()}
+                        onClick={async () => {
+                          setAiLoadingSpec(true)
+                          try {
+                            const corrected = await correctGrammar(catalogItemForm.specification)
+                            await typewriter(corrected, (val) => setCatalogItemForm(f => ({ ...f, specification: val })))
+                            toast.success('Especificação corrigida pela IA!')
+                          } catch { toast.error('Erro ao corrigir com IA') }
+                          finally { setAiLoadingSpec(false) }
+                        }}
+                        className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-violet-300 text-violet-600 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950/30 disabled:opacity-40 transition-colors"
+                      >
+                        {aiLoadingSpec ? <CircleNotch size={11} className="animate-spin" /> : <Sparkle size={11} weight="fill" />}
+                        Corrigir com IA
+                      </button>
+                    </div>
                     <textarea
                       className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                       value={catalogItemForm.specification}
@@ -673,9 +594,28 @@ export function ContratosView({
 
                 {/* Palavras-chave */}
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                    Palavras-chave para Busca
-                  </h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Palavras-chave para Busca
+                    </h3>
+                    <button
+                      type="button"
+                      disabled={aiLoadingKw || !catalogItemForm.specification.trim()}
+                      onClick={async () => {
+                        setAiLoadingKw(true)
+                        try {
+                          const kws = await generateKeywords(catalogItemForm.specification || catalogItemForm.description)
+                          setCatalogItemForm(f => ({ ...f, keyword1: kws[0] ?? '', keyword2: kws[1] ?? '', keyword3: kws[2] ?? '', keyword4: kws[3] ?? '' }))
+                          toast.success('Palavras-chave geradas pela IA!')
+                        } catch { toast.error('Erro ao gerar palavras-chave') }
+                        finally { setAiLoadingKw(false) }
+                      }}
+                      className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-violet-300 text-violet-600 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950/30 disabled:opacity-40 transition-colors"
+                    >
+                      {aiLoadingKw ? <CircleNotch size={11} className="animate-spin" /> : <Sparkle size={11} weight="fill" />}
+                      Gerar com IA
+                    </button>
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-4">
                     {(['keyword1', 'keyword2', 'keyword3', 'keyword4'] as const).map((k, i) => (
                       <div key={k} className="grid gap-2">

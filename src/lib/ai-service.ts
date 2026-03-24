@@ -168,7 +168,7 @@ Responda SEMPRE em português brasileiro. Seja concisa (máx. 200 palavras), dir
 
 // ── Entry point público ──────────────────────────────────────────────────────
 export async function generateAIResponse(message: string, ctx: SystemContext): Promise<string> {
-  const apiKey = localStorage.getItem('sgfi-openai-key')
+  const apiKey = (() => { try { return JSON.parse(localStorage.getItem('sgfi_sgfi-openai-key') ?? 'null') as string | null } catch { return null } })()
   if (apiKey) {
     try {
       return await callOpenAI(message, ctx, apiKey)
@@ -179,4 +179,157 @@ export async function generateAIResponse(message: string, ctx: SystemContext): P
   // Simula uma pequena latência para parecer natural
   await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
   return generateLocalResponse(message, ctx)
+}
+
+// ── Correção gramatical ──────────────────────────────────────────────────────
+function localCorrectGrammar(text: string): string {
+  let t = text.trim()
+  t = t.replace(/\s{2,}/g, ' ')
+  t = t.replace(/(^|[.!?]\s+)([a-záàâãéèêíïóôõöúüçñ])/gi, (m, sep, char) => sep + char.toUpperCase())
+  if (t && !/[.!?]$/.test(t)) t += '.'
+  t = t.charAt(0).toUpperCase() + t.slice(1)
+  return t
+}
+
+// ── LanguageTool (gratuito, sem chave, suporte pt-BR) ────────────────────────
+interface LTMatch {
+  offset: number
+  length: number
+  replacements: { value: string }[]
+}
+async function languageToolCorrect(text: string): Promise<string> {
+  const params = new URLSearchParams({ text, language: 'pt-BR', enabledOnly: 'false' })
+  const res = await fetch('https://api.languagetool.org/v2/check', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  })
+  if (!res.ok) throw new Error('LanguageTool unavailable')
+  const data: { matches: LTMatch[] } = await res.json()
+  const matches = data.matches ?? []
+  if (!matches.length) return localCorrectGrammar(text)
+  // Aplica substituições do fim para o início para preservar os offsets
+  let result = text
+  const sorted = [...matches]
+    .filter(m => m.replacements?.length > 0)
+    .sort((a, b) => b.offset - a.offset)
+  for (const match of sorted) {
+    const repl = match.replacements[0].value
+    result = result.slice(0, match.offset) + repl + result.slice(match.offset + match.length)
+  }
+  return localCorrectGrammar(result)
+}
+
+export async function correctGrammar(text: string): Promise<string> {
+  if (!text.trim()) return text
+
+  // 1) OpenAI (se houver chave configurada)
+  const apiKey = (() => { try { return JSON.parse(localStorage.getItem('sgfi_sgfi-openai-key') ?? 'null') as string | null } catch { return null } })()
+  if (apiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `Você é um revisor linguístico sênior especializado em Português Brasileiro (PT-BR).
+Sua tarefa é corrigir rigorosamente:
+1. Ortografia e acentuação gráfica.
+2. Concordância verbal e nominal.
+3. Regência e uso da crase.
+4. Pontuação e coesão textual.
+5. Erros de digitação comuns.
+
+Regras estritas:
+- Mantenha o tom original (formal ou informal), mas gramaticalmente correto.
+- Não adicione comentários, explicações ou saudações.
+- Retorne APENAS o texto final corrigido.`,
+            },
+            { role: 'user', content: text },
+          ],
+          max_tokens: 4096,
+          temperature: 0,
+        }),
+      })
+      if (res.ok) {
+        const data: { choices: { message: { content: string } }[] } = await res.json()
+        return data.choices[0]?.message?.content?.trim() ?? text
+      }
+    } catch (e) {
+      console.warn('[Sofia] OpenAI indisponível para correção:', e)
+    }
+  }
+
+  // 2) LanguageTool (gratuito, sem chave)
+  try {
+    return await languageToolCorrect(text)
+  } catch (e) {
+    console.warn('[Sofia] LanguageTool indisponível:', e)
+  }
+
+  // 3) Fallback local mínimo
+  return localCorrectGrammar(text)
+}
+
+// ── Geração de palavras-chave ────────────────────────────────────────────────
+const PT_STOP_WORDS = new Set([
+  'de','da','do','das','dos','a','o','as','os','e','em','por','para','com','sem',
+  'um','uma','uns','umas','no','na','nos','nas','ao','aos','à','às','se','que',
+  'ou','mas','mais','como','até','após','ante','sob','sobre','entre','contra',
+  'ser','ter','vai','este','esta','estes','estas','esse','essa','esses','essas',
+  'seu','sua','seus','suas','meu','minha','meus','minhas','pelo','pela','pelos',
+  'pelas','quando','onde','qual','quais','quanto','desde','etc','item','tipo',
+])
+
+function localGenerateKeywords(spec: string): string[] {
+  const words = spec
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 4 && !PT_STOP_WORDS.has(w))
+  // Conta frequência
+  const freq: Record<string, number> = {}
+  words.forEach(w => { freq[w] = (freq[w] ?? 0) + 1 })
+  // Ordena por frequência desc, depois comprimento desc
+  const sorted = [...new Set(words)].sort((a, b) => (freq[b] - freq[a]) || (b.length - a.length))
+  return sorted.slice(0, 4)
+}
+
+export async function generateKeywords(spec: string): Promise<string[]> {
+  if (!spec.trim()) return ['', '', '', '']
+  const apiKey = (() => { try { return JSON.parse(localStorage.getItem('sgfi_sgfi-openai-key') ?? 'null') as string | null } catch { return null } })()
+  if (apiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'Você extrai exatamente 4 palavras-chave resumidas de um texto de especificação de item de contrato público. Responda APENAS com as 4 palavras separadas por vírgula, sem numeração, sem explicação. Exemplo: combustível, veículo, serviço, abastecimento' },
+            { role: 'user', content: spec },
+          ],
+          max_tokens: 60,
+          temperature: 0.3,
+        }),
+      })
+      if (res.ok) {
+        const data: { choices: { message: { content: string } }[] } = await res.json()
+        const raw = data.choices[0]?.message?.content?.trim() ?? ''
+        const kws = raw.split(',').map(k => k.trim()).filter(Boolean).slice(0, 4)
+        while (kws.length < 4) kws.push('')
+        return kws
+      }
+    } catch (e) {
+      console.warn('[Sofia] OpenAI indisponível para keywords:', e)
+    }
+  }
+  await new Promise(r => setTimeout(r, 350))
+  const kws = localGenerateKeywords(spec)
+  while (kws.length < 4) kws.push('')
+  return kws
 }
