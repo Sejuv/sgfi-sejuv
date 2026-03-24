@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { FloatingWindow } from '@/components/FloatingWindow'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,11 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Contract, ContractItem, ContractStatus, Creditor, CatalogItem } from '@/lib/types'
-import { Plus, Trash, CurrencyCircleDollar, BellRinging, Package } from '@phosphor-icons/react'
+import { Plus, Trash, CurrencyCircleDollar, BellRinging, Package, MagnifyingGlass, FunnelSimple, Check } from '@phosphor-icons/react'
 import { formatCurrency } from '@/lib/calculations'
 
 interface ContractFormDialogProps {
@@ -61,23 +62,43 @@ export function ContractFormDialog({
   const [items, setItems] = useState<ContractItem[]>([emptyItem()])
   const [alertNewContract, setAlertNewContract] = useState<string>('')
   const [alertAdditive, setAlertAdditive] = useState<string>('')
-  const [activeAC, setActiveAC] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
-  const acRef = useRef<HTMLDivElement>(null)
 
-  // Fecha dropdown ao clicar fora
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (acRef.current && !acRef.current.contains(e.target as Node)) setActiveAC(null)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  // ── Modal de seleção de catálogo ─────────────────────────
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerTargetId, setPickerTargetId] = useState<string | null>(null)
+  const [pickerSearch, setPickerSearch] = useState('')
+  const [pickerCategory, setPickerCategory] = useState('all')
 
-  const catalogSuggestions = (query: string) =>
-    catalogItems
-      .filter(ci => ci.description.toLowerCase().includes(query.toLowerCase()))
-      .slice(0, 10)
+  const catalogCategories = Array.from(new Set(catalogItems.map(ci => ci.category).filter(Boolean)))
+
+  const filteredCatalog = catalogItems.filter(ci => {
+    const matchSearch = !pickerSearch.trim() ||
+      ci.description.toLowerCase().includes(pickerSearch.toLowerCase()) ||
+      (ci.specification ?? '').toLowerCase().includes(pickerSearch.toLowerCase()) ||
+      [ci.keyword1, ci.keyword2, ci.keyword3, ci.keyword4].some(k => k?.toLowerCase().includes(pickerSearch.toLowerCase()))
+    const matchCat = pickerCategory === 'all' || ci.category === pickerCategory
+    return matchSearch && matchCat
+  })
+
+  const openPickerForItem = (itemId: string) => {
+    setPickerTargetId(itemId)
+    setPickerSearch('')
+    setPickerCategory('all')
+    setPickerOpen(true)
+  }
+
+  const selectFromPicker = (ci: CatalogItem) => {
+    if (!pickerTargetId) return
+    setItems(prev => prev.map(i =>
+      i.id === pickerTargetId
+        ? { ...i, catalogItemId: ci.id, description: ci.description, unit: ci.unit, unitPrice: ci.unitPrice }
+        : i
+    ))
+    setPickerOpen(false)
+    setPickerTargetId(null)
+    setIsDirty(true)
+  }
 
   useEffect(() => {
     if (initialData) {
@@ -113,7 +134,15 @@ export function ContractFormDialog({
 
   const totalValue = items.reduce((acc, i) => acc + i.quantity * i.unitPrice, 0)
 
-  const addItem = () => { setItems((prev) => [...prev, emptyItem()]); setIsDirty(true) }
+  const addItem = () => {
+    const newItem = emptyItem()
+    setItems(prev => [...prev, newItem])
+    setPickerTargetId(newItem.id)
+    setPickerSearch('')
+    setPickerCategory('all')
+    setPickerOpen(true)
+    setIsDirty(true)
+  }
 
   const pickCatalogItem = (itemId: string, ci: CatalogItem) => {
     setItems(prev => prev.map(i =>
@@ -121,7 +150,6 @@ export function ContractFormDialog({
         ? { ...i, catalogItemId: ci.id, description: ci.description, unit: ci.unit, unitPrice: ci.unitPrice }
         : i
     ))
-    setActiveAC(null)
     setIsDirty(true)
   }
 
@@ -325,41 +353,22 @@ export function ContractFormDialog({
                   {items.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <div className="relative flex flex-col gap-1" ref={activeAC === item.id ? acRef : undefined}>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              value={item.description}
-                              onChange={(e) => {
-                                updateItem(item.id, 'description', e.target.value)
-                                setActiveAC(e.target.value.length >= 1 ? item.id : null)
-                              }}
-                              onFocus={() => {
-                                if (item.description.length >= 1) setActiveAC(item.id)
-                              }}
-                              placeholder="Pesquise pelo catálogo ou descreva..."
-                              className="h-8 flex-1"
-                            />
-                            {item.catalogItemId && (
-                              <Badge variant="secondary" className="h-8 shrink-0 text-xs gap-1 px-2">
-                                <Package size={11} />
-                                Catálogo
-                              </Badge>
-                            )}
-                          </div>
-                          {activeAC === item.id && catalogSuggestions(item.description).length > 0 && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-52 overflow-auto rounded-md border bg-popover shadow-md">
-                              {catalogSuggestions(item.description).map(ci => (
-                                <button
-                                  key={ci.id}
-                                  type="button"
-                                  className="w-full flex flex-col items-start px-3 py-2 text-left hover:bg-accent gap-0.5"
-                                  onMouseDown={(e) => { e.preventDefault(); pickCatalogItem(item.id, ci) }}
-                                >
-                                  <span className="text-xs font-medium leading-tight">{ci.description}</span>
-                                  <span className="text-xs text-muted-foreground">{ci.unit}{ci.category ? ` · ${ci.category}` : ''}</span>
-                                </button>
-                              ))}
-                            </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openPickerForItem(item.id)}
+                            className="flex-1 h-8 px-3 text-left text-sm rounded-md border border-input bg-background hover:bg-accent hover:border-primary/50 transition-colors truncate"
+                          >
+                            {item.description
+                              ? <span className="truncate">{item.description}</span>
+                              : <span className="text-muted-foreground">Clique para selecionar do catálogo...</span>
+                            }
+                          </button>
+                          {item.catalogItemId && (
+                            <Badge variant="secondary" className="h-8 shrink-0 text-xs gap-1 px-2">
+                              <Package size={11} />
+                              Catálogo
+                            </Badge>
                           )}
                         </div>
                       </TableCell>
@@ -432,6 +441,90 @@ export function ContractFormDialog({
           </Button>
         </div>
       </div>
+
+      {/* ── Modal de seleção do catálogo ─────────────────── */}
+      <Dialog open={pickerOpen} onOpenChange={(v) => { setPickerOpen(v); if (!v) setPickerTargetId(null) }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col gap-0 p-0">
+          <DialogHeader className="px-5 pt-5 pb-3 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              <Package size={18} className="text-primary" />
+              Selecionar Item do Catálogo
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Filtros */}
+          <div className="flex gap-3 px-5 py-3 border-b bg-muted/30">
+            <div className="relative flex-1">
+              <MagnifyingGlass size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por descrição, especificação ou palavras-chave..."
+                value={pickerSearch}
+                onChange={e => setPickerSearch(e.target.value)}
+                className="pl-8 h-9"
+                autoFocus
+              />
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <FunnelSimple size={15} className="text-muted-foreground" />
+              <select
+                value={pickerCategory}
+                onChange={e => setPickerCategory(e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="all">Todas as categorias</option>
+                {catalogCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Lista */}
+          <div className="flex-1 overflow-y-auto">
+            {filteredCatalog.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+                <Package size={40} weight="thin" />
+                <p className="text-sm">Nenhum item encontrado</p>
+                {pickerSearch && <p className="text-xs">Tente outros termos de busca</p>}
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredCatalog.map(ci => (
+                  <button
+                    key={ci.id}
+                    type="button"
+                    onClick={() => selectFromPicker(ci)}
+                    className="w-full flex items-start gap-3 px-5 py-3 text-left hover:bg-accent transition-colors group"
+                  >
+                    <div className="mt-0.5 p-1.5 rounded-md bg-primary/10 text-primary shrink-0">
+                      <Package size={14} weight="fill" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{ci.description}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {ci.category && <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{ci.category}</Badge>}
+                        {ci.unit && <span className="text-xs text-muted-foreground">{ci.unit}</span>}
+                        {ci.unitPrice > 0 && <span className="text-xs text-muted-foreground">{formatCurrency(ci.unitPrice)}</span>}
+                      </div>
+                      {ci.specification && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{ci.specification}</p>}
+                    </div>
+                    <Check size={16} className="shrink-0 mt-1 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="px-5 py-3 border-t bg-muted/20 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              {filteredCatalog.length} item{filteredCatalog.length !== 1 ? 's' : ''} encontrado{filteredCatalog.length !== 1 ? 's' : ''}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => { setPickerOpen(false); setPickerTargetId(null) }}>
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </FloatingWindow>
   )
 }
