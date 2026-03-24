@@ -13,6 +13,11 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 
 const app = express()
 
+// ── Proxy reverso (Railway, Vercel, etc.) ─────────────────────
+// Necessário para que express-rate-limit leia corretamente o IP
+// real via X-Forwarded-For
+app.set('trust proxy', 1)
+
 // ── Cabeçalhos de segurança HTTP ──────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
