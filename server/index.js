@@ -1,6 +1,5 @@
 /**
- * SGFI — Servidor local (desenvolvimento)
- * Para produção, o Firebase Functions usa server/functions-entry.js
+ * SGFI — Servidor (Railway / desenvolvimento local)
  */
 const app  = require('./app')
 
