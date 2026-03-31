@@ -74,9 +74,10 @@ app.use('/api/creditors',     requireAuth, require('./routes/creditors'))
 app.use('/api/expenses',      requireAuth, require('./routes/expenses'))
 app.use('/api/categories',    requireAuth, require('./routes/categories'))
 app.use('/api/contracts',     requireAuth, require('./routes/contracts'))
-app.use('/api/catalog-items', requireAuth, require('./routes/catalog-items'))
-app.use('/api/pncp-catalog',  requireAuth, require('./routes/pncp-catalog'))
-app.use('/api/entities',      requireAuth, require('./routes/entities'))
+app.use('/api/catalog-items',    requireAuth, require('./routes/catalog-items'))
+app.use('/api/pncp-catalog',     requireAuth, require('./routes/pncp-catalog'))
+app.use('/api/portal-iraucuba',  requireAuth, require('./routes/portal-iraucuba'))
+app.use('/api/entities',         requireAuth, require('./routes/entities'))
 app.use('/api/settings',      requireAuth, require('./routes/settings'))
 
 // ── Health check (público) ────────────────────────────────────

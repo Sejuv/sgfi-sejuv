@@ -10,10 +10,11 @@ import {
   Plus, Trash, PencilSimple, CalendarBlank, FileText,
   BellRinging, Bell, ListBullets, Scales, CheckCircle,
   Clock, XCircle, WarningCircle, Sparkle, CircleNotch,
+  CloudArrowDown, Eye,
 } from '@phosphor-icons/react'
 import { Contract, Creditor, CatalogItem } from '@/lib/types'
 import { formatCurrency } from '@/lib/calculations'
-import { catalogItemsApi, pncpCatalogApi, type PncpCatalogItem } from '@/lib/api'
+import { catalogItemsApi, pncpCatalogApi, portalIraucubaApi, type PncpCatalogItem, type PortalPreviewItem } from '@/lib/api'
 import { correctGrammar, generateKeywords } from '@/lib/ai-service'
 import { toast } from 'sonner'
 
@@ -69,6 +70,87 @@ export function ContratosView({
   const [aiLoadingDesc, setAiLoadingDesc]   = useState(false)
   const [aiLoadingSpec, setAiLoadingSpec]   = useState(false)
   const [aiLoadingKw, setAiLoadingKw]       = useState(false)
+
+  // ── Importação do Portal de Transparência ────────────────
+  const [portalLoading, setPortalLoading]       = useState(false)
+  const [portalPreview, setPortalPreview]       = useState<PortalPreviewItem[] | null>(null)
+  const [portalShowDialog, setPortalShowDialog] = useState(false)
+
+  type PortalProgress = {
+    active:    boolean
+    done:      boolean
+    error?:    string
+    status:    string
+    processed: number
+    total:     number
+    saved:     number
+    skipped:   number
+  }
+  const PORTAL_PROGRESS_INIT: PortalProgress = {
+    active: false, done: false, status: '', processed: 0, total: 0, saved: 0, skipped: 0,
+  }
+  const [portalProgress, setPortalProgress] = useState<PortalProgress>(PORTAL_PROGRESS_INIT)
+
+  const handlePortalPreview = async () => {
+    setPortalLoading(true)
+    try {
+      const { items, total } = await portalIraucubaApi.preview()
+      setPortalPreview(items)
+      setPortalShowDialog(true)
+      toast.success(`${total} itens encontrados no portal`)
+    } catch (e: any) {
+      toast.error(`Erro ao acessar portal: ${e.message}`)
+    } finally {
+      setPortalLoading(false)
+    }
+  }
+
+  const handlePortalImportStream = async () => {
+    setPortalShowDialog(false)
+    setPortalPreview(null)
+    setPortalProgress({ ...PORTAL_PROGRESS_INIT, active: true, status: 'Iniciando...' })
+
+    try {
+      const response = await portalIraucubaApi.importStream()
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error((err as any).error || `HTTP ${response.status}`)
+      }
+
+      const reader = response.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const ev = JSON.parse(line.slice(6))
+            if (ev.type === 'status') {
+              setPortalProgress(p => ({ ...p, status: ev.message }))
+            } else if (ev.type === 'total') {
+              setPortalProgress(p => ({ ...p, total: ev.total, status: 'Importando itens...' }))
+            } else if (ev.type === 'progress') {
+              setPortalProgress(p => ({ ...p, processed: ev.processed, saved: ev.saved, skipped: ev.skipped }))
+            } else if (ev.type === 'done') {
+              setPortalProgress(p => ({ ...p, processed: ev.processed, saved: ev.saved, skipped: ev.skipped, done: true, status: 'Concluído!' }))
+              const updatedItems = await catalogItemsApi.list()
+              onCatalogItemsChange(updatedItems)
+            } else if (ev.type === 'error') {
+              throw new Error(ev.message)
+            }
+          } catch { /* linha malformada */ }
+        }
+      }
+    } catch (e: any) {
+      setPortalProgress(p => ({ ...p, error: e.message, status: 'Erro na importação' }))
+    }
+  }
 
   // Efeito de digitação ao aplicar correção da IA
   const typewriter = async (text: string, setter: (val: string) => void, speed = 16) => {
@@ -650,11 +732,38 @@ export function ContratosView({
             {/* Tabela de itens cadastrados */}
             <Card>
               <CardHeader>
-                <CardTitle className="font-display">Itens Cadastrados</CardTitle>
-                <CardDescription>
-                  {catalogItems.length} {catalogItems.length === 1 ? 'item disponível' : 'itens disponíveis'} para
-                  seleção nos contratos
-                </CardDescription>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="font-display">Itens Cadastrados</CardTitle>
+                    <CardDescription>
+                      {catalogItems.length} {catalogItems.length === 1 ? 'item disponível' : 'itens disponíveis'} para
+                      seleção nos contratos
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      disabled={portalLoading}
+                      onClick={handlePortalPreview}
+                    >
+                      {portalLoading
+                        ? <CircleNotch size={14} className="animate-spin" />
+                        : <Eye size={14} />}
+                      Prévia do Portal
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      disabled={portalLoading}
+                      onClick={handlePortalImportStream}
+                    >
+                      <CloudArrowDown size={14} />
+                      Importar do Portal
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {catalogItems.length === 0 ? (
@@ -715,6 +824,134 @@ export function ContratosView({
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* ── Dialog de Prévia do Portal ── */}
+      {portalShowDialog && portalPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-background border rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <div>
+                <h2 className="text-lg font-semibold font-display">Prévia — Portal de Transparência</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {portalPreview.length} {portalPreview.length === 1 ? 'item encontrado' : 'itens encontrados'} em
+                  {' '}transparencia.acontratacao.com.br/pmiraucuba/itens
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setPortalShowDialog(false)}>
+                <XCircle size={18} />
+              </Button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-4">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3 font-medium">Descrição</th>
+                    <th className="text-left py-2 px-3 font-medium">Categoria</th>
+                    <th className="text-left py-2 px-3 font-medium">Unidade</th>
+                    <th className="text-left py-2 px-3 font-medium">Especificação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {portalPreview.map((item, i) => (
+                    <tr key={i} className={i % 2 === 0 ? 'bg-muted/30' : ''}>
+                      <td className="py-1.5 px-3 max-w-[200px] truncate" title={item.descricao}>{item.descricao || '—'}</td>
+                      <td className="py-1.5 px-3 text-muted-foreground">{item.categoria || '—'}</td>
+                      <td className="py-1.5 px-3">{item.unidade || '—'}</td>
+                      <td className="py-1.5 px-3 max-w-[200px] truncate text-muted-foreground" title={item.especificacao}>{item.especificacao || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end gap-2 px-6 py-4 border-t">
+              <Button variant="outline" onClick={() => setPortalShowDialog(false)}>Cancelar</Button>
+              <Button onClick={handlePortalImportStream}>
+                <CloudArrowDown size={14} className="mr-2" />Confirmar Importação
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de Progresso da Importação ── */}
+      {portalProgress.active && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-background border rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-5">
+            {/* Cabeçalho */}
+            <div className="flex items-center gap-3">
+              {portalProgress.done && !portalProgress.error
+                ? <CheckCircle size={24} weight="fill" className="text-green-500 shrink-0" />
+                : portalProgress.error
+                  ? <XCircle size={24} weight="fill" className="text-destructive shrink-0" />
+                  : <CircleNotch size={24} className="animate-spin text-primary shrink-0" />}
+              <div>
+                <h2 className="text-base font-semibold font-display">
+                  {portalProgress.done && !portalProgress.error
+                    ? 'Importação concluída!'
+                    : portalProgress.error
+                      ? 'Erro na importação'
+                      : 'Importando itens do portal...'}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{portalProgress.status}</p>
+              </div>
+            </div>
+
+            {/* Barra de progresso */}
+            {portalProgress.total > 0 && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{portalProgress.processed.toLocaleString('pt-BR')} de {portalProgress.total.toLocaleString('pt-BR')} itens</span>
+                  <span>{Math.round((portalProgress.processed / portalProgress.total) * 100)}%</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-300"
+                    style={{ width: `${Math.round((portalProgress.processed / portalProgress.total) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Contadores */}
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-lg bg-muted/50 px-3 py-2">
+                <div className="text-xl font-bold font-display tabular-nums">
+                  {portalProgress.processed.toLocaleString('pt-BR')}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Processados</div>
+              </div>
+              <div className="rounded-lg bg-green-50 dark:bg-green-950/30 px-3 py-2">
+                <div className="text-xl font-bold font-display tabular-nums text-green-600 dark:text-green-400">
+                  {portalProgress.saved.toLocaleString('pt-BR')}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Salvos</div>
+              </div>
+              <div className="rounded-lg bg-orange-50 dark:bg-orange-950/30 px-3 py-2">
+                <div className="text-xl font-bold font-display tabular-nums text-orange-500">
+                  {portalProgress.skipped.toLocaleString('pt-BR')}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Duplicatas</div>
+              </div>
+            </div>
+
+            {/* Erro */}
+            {portalProgress.error && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {portalProgress.error}
+              </div>
+            )}
+
+            {/* Botão fechar (só aparece ao terminar) */}
+            {(portalProgress.done || portalProgress.error) && (
+              <div className="flex justify-end pt-1">
+                <Button onClick={() => setPortalProgress(PORTAL_PROGRESS_INIT)}>
+                  Fechar
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

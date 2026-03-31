@@ -123,6 +123,28 @@ export const pncpCatalogApi = {
     ),
 }
 
+// ── Portal de Transparência Iraucuba ──────────────────────────
+export interface PortalPreviewItem {
+  descricao:    string
+  categoria:    string
+  unidade:      string
+  especificacao: string
+}
+export const portalIraucubaApi = {
+  preview: () =>
+    req<{ items: PortalPreviewItem[]; total: number }>('GET', '/portal-iraucuba/preview'),
+  /** Retorna o Response raw para consumo via ReadableStream (SSE) */
+  importStream: () => {
+    const token = sessionStorage.getItem(TOKEN_KEY)
+    return fetch(`${BASE}/portal-iraucuba/import-stream`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+  },
+}
+
 // ── Configurações de Aparência ────────────────────────────────
 export const settingsApi = {
   list: ()                              => req<Record<string, string>>('GET', '/settings'),
