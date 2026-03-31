@@ -46,6 +46,7 @@ const generalLimiter = rateLimit({
   limit: 200,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: false, // desabilita validações do v8 que falham em proxies (Railway)
   message: { error: 'Muitas requisições. Tente novamente em alguns minutos.' },
 })
 
@@ -55,6 +56,7 @@ const loginLimiter = rateLimit({
   limit: 10,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: false, // desabilita validações do v8 que falham em proxies (Railway)
   message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
 })
 
