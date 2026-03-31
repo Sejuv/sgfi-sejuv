@@ -1,0 +1,11 @@
+# Configuracao de build do Railway para o backend SGFI
+# Referencia: https://nixpacks.com/docs/configuration/file
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["cd server && npm install --omit=dev"]
+
+[start]
+cmd = "node server/index.js"
