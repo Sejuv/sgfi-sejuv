@@ -17,17 +17,29 @@ git add .
 
 echo [2/3] Commitando...
 git commit -m "%MSG%"
+if %ERRORLEVEL% NEQ 0 (
+    echo Nenhuma alteracao para commitar.
+    goto push
+)
 
+:push
 echo [3/3] Enviando para o GitHub...
 git push
-
-echo.
-echo Fazendo deploy no Vercel...
-npx vercel --prod --yes
+if %ERRORLEVEL% NEQ 0 (
+    echo ERRO: Falha ao enviar para o GitHub.
+    pause
+    exit /b 1
+)
 
 echo.
 echo ==========================================
-echo   Concluido! sgfi-sejuv.vercel.app
+echo   Concluido! Deploy automatico em curso.
+echo.
+echo   Site: https://sgfi-sejuv.vercel.app
+echo   Painel: https://vercel.com/dashboard
+echo.
+echo   O Vercel detecta o push e faz o build
+echo   automaticamente em ~1-2 minutos.
 echo ==========================================
 echo.
 pause
