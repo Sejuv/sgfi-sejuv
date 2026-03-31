@@ -1,9 +1,8 @@
 require('dotenv').config()
-const express   = require('express')
-const cors      = require('cors')
-const crypto    = require('crypto')
-const helmet    = require('helmet')
-const rateLimit = require('express-rate-limit')
+const express = require('express')
+const cors    = require('cors')
+const crypto  = require('crypto')
+const helmet  = require('helmet')
 
 // Se JWT_SECRET não estiver definido, gera um aleatório temporário
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
@@ -38,30 +37,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false,
 }))
-
-// ── Rate limiting ─────────────────────────────────────────────
-// Limite geral: 200 req / 15 min por IP
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 200,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  validate: false, // desabilita validações do v8 que falham em proxies (Railway)
-  message: { error: 'Muitas requisições. Tente novamente em alguns minutos.' },
-})
-
-// Limite de login: 10 tentativas / 15 min por IP
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  validate: false, // desabilita validações do v8 que falham em proxies (Railway)
-  message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
-})
-
-app.use('/api/', generalLimiter)
-app.use('/api/auth/login', loginLimiter)
 
 app.use(express.json({ limit: '500kb' }))
 app.use(express.urlencoded({ extended: true, limit: '500kb' }))
