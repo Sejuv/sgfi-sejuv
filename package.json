@@ -8,7 +8,8 @@
         "dev:server": "cd server && npm run dev",
         "dev:full": "concurrently --names \"FRONT,BACK\" --prefix-colors \"cyan,yellow\" \"npm run dev\" \"npm run dev:server\"",
         "kill": "fuser -k 5000/tcp",
-        "build": "tsc -b --noCheck && vite build",
+        "build": "npx vite build",
+        "build:tsc": "tsc -b --noCheck && vite build",
         "lint": "eslint .",
         "optimize": "vite optimize",
         "preview": "vite preview"

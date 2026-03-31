@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm install --omit=dev --prefix server"]
+
+[phases.build]
+cmds = ["echo 'backend only - no build needed'"]
+
+[start]
+cmd = "node server/index.js"
