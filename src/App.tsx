@@ -93,11 +93,11 @@ function AppContent() {
     if (!isAuthenticated) return
     setLoading(true)
     Promise.all([
-      expensesApi.list().then(setExpenses),
-      creditorsApi.list().then(setCreditors),
-      categoriesApi.list().then(setCategories),
-      contractsApi.list().then(setContracts),
-      catalogItemsApi.list().then(setCatalogItems),
+      expensesApi.list().then(setExpenses).catch(() => setExpenses([])),
+      creditorsApi.list().then(setCreditors).catch(() => setCreditors([])),
+      categoriesApi.list().then(setCategories).catch(() => setCategories([])),
+      contractsApi.list().then(setContracts).catch(() => setContracts([])),
+      catalogItemsApi.list().then(setCatalogItems).catch(() => setCatalogItems([])),
     ]).finally(() => setLoading(false))
   }, [isAuthenticated])
 
