@@ -12,6 +12,7 @@ import { ContractBalanceDialog } from '@/components/ContractBalanceDialog'
 import { ExpensesView } from '@/components/views/ExpensesView'
 import { CreditorsView } from '@/components/views/CreditorsView'
 import { ContratosView } from '@/components/views/ContratosView'
+import { ImportExportView } from '@/components/views/ImportExportView'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -40,19 +41,18 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
-import { expensesApi, creditorsApi, categoriesApi, contractsApi } from '@/lib/api'
+import { expensesApi, creditorsApi, categoriesApi, contractsApi, catalogItemsApi } from '@/lib/api'
 import { BottomBar } from '@/components/BottomBar'
 import { AIAssistant } from '@/components/AIAssistant'
 import { Expense, Creditor, Category, Contract, ContractItem, CatalogItem } from '@/lib/types'
 import { formatCurrency, updateExpenseStatus } from '@/lib/calculations'
 import {
   ChartPieSlice, Plus, SignOut, Wallet, Users, DownloadSimple,
-  Gear, FileText, Sun, Moon, Bell,
+  Gear, FileText, Sun, Moon, Bell, ArrowsLeftRight,
 } from '@phosphor-icons/react'
 import { ThemeProvider, useTheme } from '@/lib/theme-context'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
-import { catalogItemsApi } from '@/lib/api'
 
 // â”€â”€ Tipos compartilhados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type DeleteConfirm = { type: 'expense' | 'creditor' | 'contract'; id: string; label: string }
@@ -88,9 +88,7 @@ function AppContent() {
   const [settingsDialogOpen,      setSettingsDialogOpen]      = useState(false)
   const [deleteConfirm,           setDeleteConfirm]           = useState<DeleteConfirm | null>(null)
 
-  // Carrega dados ao autenticar
-  useEffect(() => {
-    if (!isAuthenticated) return
+  const reloadData = () => {
     setLoading(true)
     Promise.all([
       expensesApi.list().then(setExpenses).catch(() => setExpenses([])),
@@ -99,6 +97,12 @@ function AppContent() {
       contractsApi.list().then(setContracts).catch(() => setContracts([])),
       catalogItemsApi.list().then(setCatalogItems).catch(() => setCatalogItems([])),
     ]).finally(() => setLoading(false))
+  }
+
+  // Carrega dados ao autenticar
+  useEffect(() => {
+    if (!isAuthenticated) return
+    reloadData()
   }, [isAuthenticated])
 
   if (!isAuthenticated) return <LoginPage />
@@ -285,10 +289,11 @@ function AppContent() {
   })()
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard',  icon: ChartPieSlice, badge: 0 },
-    { id: 'expenses',  label: 'Despesas',   icon: Wallet,        badge: overdueCount },
-    { id: 'creditors', label: 'Credores',   icon: Users,         badge: 0 },
-    { id: 'contratos', label: 'Contratos',  icon: FileText,      badge: 0 },
+    { id: 'dashboard',     label: 'Dashboard',          icon: ChartPieSlice,   badge: 0 },
+    { id: 'expenses',      label: 'Despesas',           icon: Wallet,          badge: overdueCount },
+    { id: 'creditors',     label: 'Credores',           icon: Users,           badge: 0 },
+    { id: 'contratos',     label: 'Contratos',          icon: FileText,        badge: 0 },
+    { id: 'import-export', label: 'Importar / Exportar', icon: ArrowsLeftRight, badge: 0 },
   ]
 
   const activeItem  = menuItems.find(m => m.id === activeView)
@@ -332,6 +337,17 @@ function AppContent() {
             onDeleteConfirm={setDeleteConfirm}
             onShowBalance={(c) => { setContractForBalance(c); setBalanceDialogOpen(true) }}
             onCatalogItemsChange={setCatalogItems}
+          />
+        )
+      case 'import-export':
+        return (
+          <ImportExportView
+            expenses={updatedExpenses}
+            creditors={creditors}
+            contracts={contracts}
+            catalogItems={catalogItems}
+            categories={categories}
+            onImported={reloadData}
           />
         )
       default:
